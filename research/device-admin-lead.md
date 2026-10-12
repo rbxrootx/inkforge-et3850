@@ -1,6 +1,6 @@
-# Epson Device Admin: local-file network update lead
+# Epson Device Admin: historical protocol lead
 
-This is the strongest **documented** lead so far for a network update from a file on the PC. It is not yet a verified ET-3850 custom-firmware installation path.
+This records an earlier protocol lead for context. The user has excluded Epson's official admin and updater tools from the installation plan. Our current work uses an independently built client and offline emulation of the firmware's own network path. Device Admin is not a verified ET-3850 custom-firmware installation path.
 
 - Epson's [Device Admin User's Guide](https://files.support.epson.com/docid/other/npd6822_00_en.pdf), pages 70–75, describes a firmware update schedule with **Load from PC**, which uses a firmware file selected by the operator. It says updates can be performed only for devices supporting that feature.
 - Epson's [ET-3850 series user guide](https://download4.epson.biz/sec_pubs/et-3850_series/useg/en/manual.pdf) says the administrator password can be changed through Epson Device Admin. An [Epson product brochure](https://epsonemear.a.bigcontent.io/v1/static/a15659-brochure-lores-fr-fr-solutions_for_wf_and_et_series) lists ET-3850 with Epson Device Admin. Those establish management compatibility, but not that this model exposes Device Admin's local-file firmware update feature.
@@ -9,11 +9,6 @@ This is the strongest **documented** lead so far for a network update from a fil
 
 The older and current official RCX signatures both verify against the same embedded public key. An offline one-byte change in the current RCX payload causes [`verify_rcx_signature.py`](../scripts/verify_rcx_signature.py) to reject it. This confirms the signature covers the payload bytes, while leaving open whether the ET-3850 checks that signature, how it roots trust, and whether Device Admin applies its own checks.
 
-## Verification still needed
-
-1. Obtain Epson Device Admin from an official download channel and discover the ET-3850 over the local network.
-2. Confirm whether the **Update Firmware → Load from PC** feature is enabled for this exact unit and what file format it accepts. Do not start an update just to test this.
-3. Capture the application-to-printer protocol with an official, non-installing validation step if the UI provides one; correlate it with `/FIRMWAREUPDATE` or other routes in the extracted `nwsoc`.
-4. Establish whether malformed or unsigned files are rejected before any destructive write, preferably in an emulator or spare unit with recovery access.
+The historical lead did not establish a protocol or install capability. The independent path now being investigated is the printer's `/DOWN/` request relay and its controller-side approval and signature checks. See [generic stream trace](generic-down-stream.md) and [controller CROM trace](controller-crom-trace.md).
 
 No firmware was sent to the live printer while investigating this lead.
