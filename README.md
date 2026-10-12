@@ -12,7 +12,8 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Found a boot hook in the extracted firmware: `/opt/nwsoc_data/ExtBoot`, executed before `nwsoc`. No verified network method to write this hook has been found.
 - Traced the updater's network POST selection and generic SHA-256/ECDSA P-256 verification code. The ET-3850 RCX signature verifies against an embedded public key, but the updater's compiled key table omits XB20 and its model-specific path is unresolved. A modified RCX is not currently installable. See [the updater signature trace](research/updater-signature.md).
 - Mapped printer-side firmware update GET and POST route-table entries on ports 80 and 443. Under a protection flag, port 80 rejects these routes and HTTPS requires Basic administrator credentials. The POST path enters an internal transport channel; its peer and signature gate remain unidentified. See [the network update route trace](research/network-update-route-trace.md).
-- Traced a second boot-image key copy descriptor. The `EPSONSIGN` parser reads a runtime copy of the same public key embedded in both RCX releases. What authenticates the boot image itself remains unresolved. See [the updater signature trace](research/updater-signature.md).
+- Traced a second boot-image key copy descriptor and the P-256 verification decision. The `EPSONSIGN` parser reads a runtime copy of the same public key embedded in both RCX releases. What authenticates the boot image itself remains unresolved. See [the updater signature trace](research/updater-signature.md).
+- Rebuilt the second SquashFS with the patched `nwsoc`, placed it inside a same-length offline RCX, and made both IPL key copies and the outer signature internally consistent with an ephemeral key. Re-extraction recovered the patched executable byte-for-byte. A check against the existing XB22Q5 IPL key **rejects** this self-signed candidate. It has not been sent to the printer. See [the custom firmware status](research/custom-firmware-status.md).
 - Confirmed the live printer advertises JPEG printing over IPPS. A cake page generator and explicit-send IPPS client are ready for the final print, after a custom change is installed and verified. The IPPS client was exercised in read-only mode only.
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
 - Traced a possible ENPC hostname-to-DHCP shell path. The authenticated network configuration session and same-value write work on the live printer. The configuration-scope transition and command execution remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
@@ -64,9 +65,11 @@ The script checks the package and RCX SHA-256 hashes, extracts the nested RCX, a
 python scripts/patch_candidate.py --input path/to/nwsoc --output path/to/nwsoc.patched
 python scripts/patch_suspend_candidate.py --input path/to/wlan_enable_suspend.sh --output path/to/wlan_enable_suspend.sh.patched
 python scripts/patch_wifi_power_all.py --input path/to/nwsoc --output path/to/nwsoc.wifi-power-all
+scripts/repack_wifi_candidate.sh path/to/squashfs_1.img path/to/nwsoc.wifi-power-all path/to/repacked.img
+python scripts/build_self_signed_control.py --input path/to/FWCJ61TL.rcx --squashfs path/to/repacked.img --output path/to/offline-control.rcx
 ```
 
-The suspend-script candidate keeps USB `power/control` at `on` and blocks Realtek autosuspend when the firmware calls the enable-suspend script. That call appears in a USB/Bluetooth initialization path; whether the script influences the reported Wi-Fi fault is unknown. All candidates are offline research artifacts. There is no install command in this repository.
+The suspend-script candidate keeps USB `power/control` at `on` and blocks Realtek autosuspend when the firmware calls the enable-suspend script. That call appears in a USB/Bluetooth initialization path; whether the script influences the reported Wi-Fi fault is unknown. All candidates are offline research artifacts. There is no install command in this repository. The repack script requires Linux `unsquashfs` and `mksquashfs` and leaves its temporary extraction path for inspection.
 
 ## Reporting
 
