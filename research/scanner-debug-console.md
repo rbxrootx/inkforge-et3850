@@ -1,0 +1,11 @@
+# Scanner debug console: transport check
+
+The decoded CROM image carved from the XB22Q5 RCX at offset `0x69f112` has SHA-256 `8a6fd7facdf4534eb4c5e4f4261700fb839880f006e3e0ce19dea44f1c977c9d`. Its runtime base is `0x43308000`, established by matching string pointers to seven decoded offsets. This is a separate image from the controller CROM used for the ROM1 package-reader trace.
+
+At runtime address `0x4341c388`, a command table contains `dd`, `dw`, and `d` memory-dump commands; `ed`, `ew`, and `e` memory-edit commands; and `port`, `ver`, `reg`, `stat`, `fd`, and `help`. The dump handler is `0x4332aa48`; the input parser is `0x4332ad00`. These are actual handler pointers, not just unused help strings.
+
+The parser is installed as a line-input callback by `0x4332b1a0`. The callback is invoked from `0x4331ec24` after a character read. The character reader at `0x4331e9b8` loads a byte from the register address held at `0x4331f1b0` plus `0x180`; the decoded constant is `0x31203000`, giving **`0x31203180`**. This is a memory-mapped device register path. The local trace does not identify a network service that writes commands to it.
+
+Initialization reaches `0x4332b1a0` through `0x4332b1bc` when scanner event handler `0x43333364` observes status byte `0xf0` (signed `-0x10`). Its caller at `0x43333954` handles event type `1`. The observed branch is consistent with a maintenance/debug mode in this scanner component; how to enter that mode on the physical ET-3850 and whether the port is accessible without hardware work remain unknown.
+
+**Research conclusion:** this console cannot currently be used as a LAN memory-dump path for the external component that receives ROM1 staging descriptors. A network entry point, enabled mode, and read-only live control would all need separate evidence. Do not treat the memory-edit commands as a demonstrated vulnerability or as a firmware-install route.
