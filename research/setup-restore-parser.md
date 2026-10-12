@@ -1,6 +1,6 @@
 # ET-3850 setup restore parser
 
-This is a **static research lead**, not a demonstrated network exploit. The code is in the `nwsoc` program extracted from the XB22Q5 ET-3850 recovery image (SHA-256 `70728f452c5358c4ef04ec39354c4656e662af675ce88d161f05949ac0`). Ghidra addresses below are virtual addresses; the corresponding binary file offsets are `address - 0x10000`.
+This is a **static research lead**, not a demonstrated network exploit. The code is in the `nwsoc` program extracted from the XB22Q5 ET-3850 recovery image (SHA-256 `70728f452c5358c4ef04ec39354c4656c42fa6e662af675ce88d161f05949ac0`). Ghidra addresses below are virtual addresses; the corresponding binary file offsets are `address - 0x10000`.
 
 ## Data flow found in the program
 
@@ -24,3 +24,5 @@ This finding should not be reported as remote code execution yet. A defensible r
 A read-only SNMPv2c query to the live printer returned a normal `sysDescr` under `public`. The claimed `internal` community from an older-model third-party reset script received no response. A vendor OID shaped like that script's EEPROM read command returned an eight-byte value under `public`, but the value was identical for seven adjacent addresses and an out-of-range address. That is **not** evidence of address-specific EEPROM access on this ET-3850. No SNMP SET was sent and no returned bytes were saved.
 
 An [independent Epson Remote Mode implementation](https://github.com/Ircama/epson_print_conf/blob/main/epson_print_conf.py) shows that the same private OID subtree encodes a two-letter command, a little-endian payload length, and payload bytes. The read-only `st` status command (`115.116.1.0.1` suffix) returned a 138-byte value through the live printer's `public` SNMP community. This confirms that the OID is a working command tunnel for at least status requests. It does **not** show that this tunnel can issue `WRITESETUP` events or restore archives. [The local status probe](../scripts/probe_remote_status.py) reports only response metadata to avoid saving device identifiers.
+
+That project's [older-model command list](https://github.com/Ircama/epson_print_conf/blob/main/README.md#epson-ctrl-commands-over-snmp) includes `fl` for firmware-load/recovery mode but does not list a setup-restore command. Neither `fl` support nor a recovery-mode network installer has been established for the ET-3850. The `fl` command was not sent: switching modes without a known way to install or recover would not test the archive filename issue and could interrupt printing.
