@@ -13,3 +13,5 @@ The live printer was not flashed or reconfigured during this analysis. Its short
 ## Network update gate
 
 The official Windows updater includes `/firmwareupdate/checknew` and `/firmwareupdate/writenew` transport strings, and `BCryptVerifySignature` plus firmware-signature error strings. This shows a network transport exists in the generic updater and that the host checks signatures. The official ET-3850 recovery package is documented as USB-only; no signed custom package or verified network flashing path has been established. Whether the printer independently checks a modified image remains unresolved. Do not send a modified image to a device with no proven recovery path.
+
+A HEAD-only probe against those two routes on the live printer returned HTTP 404 over both HTTP and HTTPS. That is only a normal-mode, method-specific observation; it does not prove the routes are absent in an update or recovery mode. No firmware bytes were sent.
