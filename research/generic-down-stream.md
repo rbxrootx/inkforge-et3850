@@ -1,0 +1,13 @@
+# Generic `/DOWN/` body stream in XB22Q5
+
+The XB22Q5 `nwsoc` HTTP table includes `POST /DOWN/` on ports 80 and 443, both with callback `0x1571f8`. The separate, longer `POST /DOWN/FIRMWAREUPDATE` records use callbacks `0x1553b0` and `0x1555e8`. [`inventory_http_route_table.py`](../scripts/inventory_http_route_table.py) reproduces these records from the unmodified extracted binary. The route matcher's choice for overlapping paths is still unknown.
+
+The generic callback passes selector `10` to the common parser at `0x154708`. For a request parsed as body-bearing type `1`, that selector sets the body flag, reads up to `0x1000` bytes with `0x160e68`, and calls dispatcher `0x1543d0`. The reader wraps `0x13c04c`, which handles fixed-length and chunked transfer states. In the dispatcher, selector `10` requires a non-null body context and enters `0x115fdc` / `0x0f5b6c`, rather than the `0x0f8ebc` path used for selectors `5` through `7`.
+
+At `0x0f5b6c`, a first controller exchange through `0x0f1d4c` must return status `200`. The initial exchange sends a serialized request header, including the URI and method, then parses the controller reply. The reply includes an identifier that must match one of nine configured channel entries. For a matched entry, `0x0e8130` sends the initial buffer and successive chunks through `0x42479c`, the D4/EPIC transport. The per-chunk callback is `0x1528e8`, selected from the pointer at `0x1546cc`; it calls `0x160e68` for the flagged body type. The response callback is `0x15236c`, selected from the pointer at `0x1546e0`.
+
+This establishes a **conditional body-transfer path** from the generic HTTP handler to the controller channel. It does not identify the controller command selected by the request URI, prove that the live printer routes a request to this handler, or show acceptance of an RCX or any modified image. A zero-byte POST to the more specific firmware path previously caused a short network interruption; no generic `/DOWN/` POST or firmware bytes have been sent to the printer.
+
+To reproduce the decompilation, import the unmodified XB22Q5 `nwsoc` (SHA-256 `70728f452c5358c4ef04ec39354c4656c42fa6e662af675ce88d161f05949ac0`) into Ghidra and run [`ghidra_trace_down_dispatch.py`](../scripts/ghidra_trace_down_dispatch.py) as a headless post-script with an output filename. Addresses here are virtual addresses from that project. The script contains no device interaction.
+
+Next question: identify the controller command and validation gate behind the initial `0x0f1d4c` response, then determine whether the generic and specific route prefixes are selected by longest match or registration order. Until those are established, this is a transport lead, not an installation or vulnerability finding.
