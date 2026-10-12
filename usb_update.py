@@ -18,6 +18,9 @@ from et3850 import SOURCE_SHA256, inspect_firmware, printer_queues
 from usb_d4 import D4, UsbPipe, WinUsbPipe
 
 CUSTOM_SHA256 = "99bae21d9ac8bbba31271dc962414ac4262e9c097d91a58b8033f5747d788249"
+TELNET2_SHA256 = "8019bf8520235619d9e4dbddfff2cc08a5ec9672c8a8da2d996aa562b672749c"
+BEACON_SHA256 = "cdc0db6d97770c5f4c306b50b9dbd767af6f6c7ab3fdeff6510a30393757a624"
+AUTH_SHA256 = "21ab2dce499dfdfce6fb68fe7407b075498981a20cba717fc30a249ad4cad055"
 PHOTO_SHA256 = "b3dfbc88b93eda08dabe5e47045e5579ceda134ff3fac4df357a2979fb579972"
 HEADER_BYTES = 0x112
 DATA_PAYLOAD_BYTES = 32762  # observed DATA MTU 32768 minus the six-byte D4 header
@@ -28,7 +31,7 @@ def preflight(path: Path) -> tuple[dict, bytes]:
     data = path.read_bytes()
     report = inspect_firmware(path)
     digest = report["sha256"]
-    if digest not in (SOURCE_SHA256, CUSTOM_SHA256, PHOTO_SHA256):
+    if digest not in (SOURCE_SHA256, CUSTOM_SHA256, TELNET2_SHA256, BEACON_SHA256, AUTH_SHA256, PHOTO_SHA256):
         raise ValueError("RCX is not a pinned XB22Q5 source or checked Wi-Fi/Telnet candidate")
     if data[HEADER_BYTES:HEADER_BYTES + 14] != b"EPSONSIGNXB20d":
         raise ValueError("unexpected RCX binary envelope")

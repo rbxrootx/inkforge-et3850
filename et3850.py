@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""ET-3850 jailbreak workbench. Local analysis and explicit offline patch builds.
-
-The USB firmware framing and device acceptance checks are still under research.
-This client never transmits firmware. It deliberately has no fake "install" path.
-"""
+"""ET-3850 jailbreak workbench and checked USB firmware transport."""
 
 from __future__ import annotations
 
@@ -263,7 +259,7 @@ def build_candidate(original: Path, squashfs: Path, output: Path,
 def tcp_services(host: str, timeout: float = 1.5) -> dict:
     """Check only SSH and Telnet on an explicitly supplied printer address."""
     result = {}
-    for name, port in (("ssh", 22), ("telnet", 23)):
+    for name, port in (("ssh", 22), ("stock_telnet", 23), ("mod_shell", 2323)):
         try:
             with socket.create_connection((host, port), timeout=timeout):
                 result[name] = "TCP open"

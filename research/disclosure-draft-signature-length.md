@@ -1,6 +1,6 @@
 # Draft for vendor triage: XB22Q5 controller package reader can skip ECDSA finalization
 
-**Status:** Offline finding in extracted ET-3850 XB22Q5 controller ARM code. The corrected CROM mapping now connects the LAN POST's first-stage `GetRequestID` request through ROM1 selection, a channel-1 body read, and the package receiver that calls this reader. The live controller reply, any earlier verifier, and physical update impact have not been demonstrated. This draft has not been submitted.
+**Status:** Offline control-flow finding plus a later, separate live custom-image installation on the owner's ET-3850. The live result establishes altered firmware execution but does not prove which controller branch accepted it. This draft has not been submitted.
 
 ## Affected image and key behavior
 
@@ -14,7 +14,13 @@ The ARM emulation below was rerun at the corrected CROM load base `0x4566ff74` w
 
 With the official three-record RCX and an isolated ARM emulator running the extracted reader/parser instructions, a verifier stub that always rejects is called once at the original declared size `40,603,648`, and the package reader returns `0`. Changing only the unsigned declared length to `40,603,649` causes the same reader to return `1`, leaves one byte in its count, and makes **zero** verifier calls. Hardware I/O, hash calculations, record-integrity checks, and staging operations are stubbed in this control. The source and exact reproduction conditions are in [`emulate_controller_reader_length.py`](../scripts/emulate_controller_reader_length.py) and the [research note](controller-signature-length-bypass.md).
 
-An offline modified Wi-Fi image also recalculates the affected large-body 16-bit sum and SHA-1 digest, then appends a byte so the declared and actual RCX payload lengths agree. Its unchanged ECDSA signature fails against the currently extracted IPL public key, while all six body sums and three record digests pass in an independent Python implementation. With this candidate, the same isolated ARM reader returns `1` and never invokes the verifier. The candidate file is kept outside the repository; no payload was sent to a printer.
+An offline modified Wi-Fi image also recalculates the affected large-body 16-bit sum and SHA-1 digest, then appends a byte so the declared and actual RCX payload lengths agree. Its unchanged ECDSA signature fails against the currently extracted IPL public key, while all six body sums and three record digests pass in an independent Python implementation. With this candidate, the same isolated ARM reader returns `1` and never invokes the verifier. This initial control file is kept outside the repository; later combined candidates were tested on the owner's printer.
+
+## Later live-device evidence
+
+On 2026-10-12, a later combined candidate containing the length control, first-IPL branch change, root launcher, and Wi-Fi argument changes was sent over USBPRINT D4 to the owner-authorized ET-3850. Its SHA-256 was `21ab2dce499dfdfce6fb68fe7407b075498981a20cba717fc30a249ad4cad055`; it is not distributed here. The sender received `fl:03:OK`. After reboot, the printer showed our `ET3850MOD` startup marker on port 2323. Authentication to the newly added private launcher returned `uid=0(root) gid=0(root)`. The running `nwsoc` digest matched our changed executable, and the 8723DU driver parameters were both `0`. See [live verification](live-custom-install.md).
+
+These independent observations prove that a package failing normal ECDSA verification nevertheless ran on this physical unit. They do **not** isolate the one-byte reader condition as the sole device-side cause: the candidate also changed a first-IPL branch, and no internal controller trace was captured. The appropriate report can state the observed security-boundary failure and provide the candidate privately to Epson while labeling the precise acceptance path as an investigated hypothesis.
 
 ## Security question and suggested fix
 

@@ -60,8 +60,14 @@ def main():
     flash.add_argument("rcx", type=Path)
     flash.add_argument("--send", action="store_true")
     flash.add_argument("--transport", choices=("usbprint", "winusb"), default="usbprint")
-    services = sub.add_parser("services", help="probe TCP 22/23 at the supplied address")
+    services = sub.add_parser("services", help="probe TCP 22, 23, and custom shell 2323")
     services.add_argument("host")
+    shell = sub.add_parser("shell", help="log in to the installed password-gated root shell")
+    shell.add_argument("host")
+    shell.add_argument("--password-file", type=Path,
+                       default=ROOT.parent.parent / "work" / "telnet_password.txt")
+    shell.add_argument("--command", dest="shell_command",
+                       help="run one shell command instead of an interactive session")
     args = parser.parse_args()
     if args.command in (None, "gui"):
         from et3850_gui import run
@@ -70,7 +76,7 @@ def main():
     if args.command == "status":
         result = {"usb": usb_devices(), "queues": printer_queues(),
                   "winusb": usb_bulk_interface(),
-                  "update_transport": "signed-stock payload and update-end acknowledged; no custom image sent"}
+                  "update_transport": "custom image installed; private port 2323 returned uid=0(root); Wi-Fi power parameters 0/0 verified live"}
     elif args.command == "usb-status":
         from usb_d4 import read_identity
         result = read_identity(args.winusb)
@@ -83,6 +89,11 @@ def main():
     elif args.command == "flash":
         from usb_update import transfer
         result = transfer(args.rcx, args.send, args.transport)
+    elif args.command == "shell":
+        from mod_shell import connect
+        result = connect(args.host, args.password_file, args.shell_command)
+        if result is None:
+            return
     else:
         result = tcp_services(args.host)
     print(json.dumps(result, indent=2))

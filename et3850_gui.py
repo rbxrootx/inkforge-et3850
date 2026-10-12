@@ -33,11 +33,11 @@ class App:
         self.root.minsize(960, 650)
         self.events: queue.Queue = queue.Queue()
         self.source = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "FWCJ61TL.rcx"))
-        self.squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_squashfs_1.img"))
-        self.first_squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_squashfs_0.img"))
-        self.destination = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_wifi_candidate.rcx"))
-        self.flash_image = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "FWCJ61TL.rcx"))
-        self.host = tk.StringVar()
+        self.squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet4_squashfs_1.img"))
+        self.first_squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet2_squashfs_0.img"))
+        self.destination = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet4_wifi_auth_candidate.rcx"))
+        self.flash_image = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet4_wifi_auth_candidate.rcx"))
+        self.host = tk.StringVar(value="192.168.0.12")
         self.append_byte = tk.BooleanVar(value=True)
         self.patch_ipl = tk.BooleanVar(value=True)
         self.busy = False
@@ -136,12 +136,12 @@ class App:
         card = self._card(title="02 / WHAT THIS PRINTER RUNS")
         self._line(card, "Linux 4.4.27 / ARM / uClibc / SquashFS", LIME)
         self._line(card, "The active network software and Realtek Wi-Fi driver are inside the extracted firmware.")
-        self._line(card, "Telnet is present behind a maintenance authentication flag. Stock SSH has not been established.")
+        self._line(card, "A custom password-gated root shell is live on TCP 2323. Stock SSH has not been established.")
         card = self._card(title="03 / MISSION STATE")
-        self._line(card, "PATCH  ›  offline candidate built and emulated", LIME)
-        self._line(card, "USB     ›  D4 control and data channels mapped; full transfer unresolved", PINK)
-        self._line(card, "FLASH   ›  signed stock transfer partial; no custom image sent", PINK)
-        self._line(card, "PRINT   ›  cake page ready; final print follows verified mod", MUTED)
+        self._line(card, "PATCH  ›  custom startup and Wi-Fi arguments verified on the live printer", LIME)
+        self._line(card, "USB     ›  D4 control and full data transfer observed", LIME)
+        self._line(card, "SHELL   ›  TCP 2323 returned uid=0(root)", LIME)
+        self._line(card, "PRINT   ›  cake IPP job completed; physical page confirmation pending", MUTED)
 
     def _file_row(self, parent, label, variable, save=False):
         tk.Label(parent, text=label, bg=PANEL, fg=MUTED,
@@ -183,7 +183,7 @@ class App:
         self.patch_report.insert("end", "Select an RCX to inspect, or build from the pinned source and rebuilt SquashFS.\n\nNo image is sent to the printer.")
 
     def _page_flash_path(self):
-        self._title("FLASH PATH", "Signed-stock transfer and update-end were acknowledged; custom image acceptance remains unverified.")
+        self._title("FLASH PATH", "The custom image installed: its startup marker and patched Wi-Fi settings were observed live.")
         card = self._card(title="LOCAL TRANSPORT")
         self._line(card, "USBPRINT MI_01 returned the printer's XB22Q5 version and status.", LIME)
         self._line(card, "EPSON-CTRL carries fl / gm update commands; EPSON-DATA carries the RCX binary stream.")
@@ -192,8 +192,8 @@ class App:
                              ("CTRL version/status framing", "OBSERVED"),
                              ("Signed-stock DATA transfer", "OBSERVED"),
                              ("Recovery mode and restore", "OPEN"),
-                             ("Device trust / acceptance", "OPEN"),
-                             ("Custom image installed", "NO")):
+                             ("Custom image startup", "OBSERVED"),
+                             ("Root shell on TCP 2323", "OBSERVED")):
             self._line(card, f"{label:<35} {state}", LIME if state == "OBSERVED" else PINK)
         card = self._card(title="CHECKED USB INSTALLER")
         self._file_row(card, "HASH-LOCKED RCX TO PREFLIGHT OR SEND", self.flash_image)
@@ -209,7 +209,7 @@ class App:
                  font=(FONT, 10), justify="left", wraplength=750).pack(anchor="w", pady=(12, 0))
 
     def _page_shell(self):
-        self._title("SHELL ACCESS", "Check SSH and Telnet on the printer address you supply. This is a two-port TCP connect only.")
+        self._title("SHELL ACCESS", "Check SSH, stock Telnet, and the installed ET3850MOD root shell.")
         card = self._card(title="CONNECTIVITY")
         self._line(card, "PRINTER IP OR HOSTNAME", MUTED)
         entry = tk.Entry(card, textvariable=self.host, bg="#080e22", fg=TEXT,
@@ -217,15 +217,16 @@ class App:
         entry.pack(fill="x", ipady=8, pady=6)
         row = tk.Frame(card, bg=PANEL)
         row.pack(anchor="w")
-        self._button(row, "CHECK TCP 22 + 23", self.probe_services)
+        self._button(row, "CHECK TCP 22 / 23 / 2323", self.probe_services)
+        self._button(row, "VERIFY ROOT WITH ID", self.verify_root, PINK)
         self.service_result = tk.StringVar(value="No address probed.")
         tk.Label(card, textvariable=self.service_result, bg=PANEL, fg=LIME,
                  font=(FONT, 11), justify="left").pack(anchor="w", pady=(12, 0))
         card = self._card(title="LINUX / LOGIN REALITY")
         self._line(card, "The ET-3850 firmware already runs Linux. Replacing the whole OS would require boot support, hardware drivers, and a recoverable flash route.")
-        self._line(card, "We found telnetd and a watcher controlled by ENUP authentication. We have not obtained that authentication or found a stock SSH daemon.")
-        self._line(card, "The extracted root account has an empty password. A boot-time Telnet bypass needs an access-control change before it is safe to test on LAN.", PINK)
-        self._line(card, "Once a custom system boots, an SSH service with a chosen key could be added. No shell is available through this client today.", PINK)
+        self._line(card, "Our custom startup script launches a password-gated root shell on port 2323. Its private password is stored outside this repository.")
+        self._line(card, "The live shell returned uid=0(root), and the Wi-Fi driver reports both power-management parameters as 0.", LIME)
+        self._line(card, "Stock SSH has not been observed. Use the command-line shell subcommand for an interactive session.")
 
     def _page_lcd_theme(self):
         self._title("LCD THEME", "The owner's photo was rebuilt into an offline 320×240 UI image. Device display is unverified.")
@@ -241,7 +242,7 @@ class App:
         card = self._card(title="PIXEL STATUS")
         self._line(card, "Owner photo: exact original people, cropped to the 320×240 screen.", CYAN)
         self._line(card, "Verified offline: rebuilt CROM changes only the 22,014-byte wallpaper PNG.", LIME)
-        self._line(card, "LCD replacement and custom firmware installation have not happened.", PINK)
+        self._line(card, "Custom Linux patch installed; LCD photo placement remains unverified.", PINK)
 
     def _page_session_log(self):
         self._title("SESSION LOG", "Live actions performed by this client during this session.")
@@ -366,10 +367,23 @@ class App:
             messagebox.showinfo("Printer address needed", "Enter the printer IP address or hostname.")
             return
         def done(result):
-            self._log(f"TCP 22/23 probe completed for {host}")
+            self._log(f"TCP 22/23/2323 probe completed for {host}")
             if self.view_name == "SHELL":
                 self.service_result.set("\n".join(f"{key.upper()}: {value}" for key, value in result.items()))
         self._run_background("Checking SSH/Telnet reachability", lambda: core.tcp_services(host), done)
+
+    def verify_root(self):
+        host = self.host.get().strip()
+        if not host:
+            messagebox.showinfo("Printer address needed", "Enter the printer IP address or hostname.")
+            return
+        from mod_shell import connect
+        password_file = core.ROOT.parent.parent / "work" / "telnet_password.txt"
+        def done(result):
+            self._log(f"Root shell ID query completed for {host}")
+            if self.view_name == "SHELL":
+                self.service_result.set(result["output"])
+        self._run_background("Authenticating to ET3850MOD", lambda: connect(host, password_file, "id"), done)
 
 
 def run():
