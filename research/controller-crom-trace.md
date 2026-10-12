@@ -67,6 +67,8 @@ Reproduce the static key-source check with `python scripts/inspect_controller_si
 
 A [second decoded controller image](secondary-update-mode.md) contains a lower-level ROM programmer and a `Program Update Mode` completion display. That routine checks a byte sum after programming but has no established network caller. Its existence does not bypass this signature path.
 
+The package reader's **header parser** is a separate [offline memory-safety lead](controller-package-index-overflow.md): it can write beyond two 37-entry tables for a descriptor ID of `0x25`, and it parses the first payload header before the streaming ECDSA check finishes. This does not supply the missing LAN path or a controlled way to replace the trusted key.
+
 ## Next proof needed
 
 Find the producer of the `WRITESETUP` chunks consumed by Linux `nwsoc`, then trace that producer to an authenticated or unauthenticated LAN handler. A harmless chosen-filename write on the test printer would be needed before calling this a vulnerability. The controller CROM trace alone does not justify sending a modified firmware image.
