@@ -1,4 +1,4 @@
-"""Verify the XB22Q5 RCX signature with its embedded P-256 public key.
+"""Verify an XB20d RCX signature with its embedded P-256 public key.
 
 Requires the third-party cryptography package. This checks internal consistency;
 the public key is also inside the image, so it does not establish a trusted root.
@@ -16,7 +16,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("rcx", type=Path)
     parser.add_argument("--key-offset", type=lambda value: int(value, 0),
-                        default=0xB122, help="XB22Q5 key coordinate offset")
+                        default=0xB122, help="ET-3850 XB20d key coordinate offset")
     args = parser.parse_args()
 
     image = args.rcx.read_bytes()

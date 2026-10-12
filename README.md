@@ -5,10 +5,12 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 ## Current state
 
 - Extracted Epson's official XB22Q5 recovery package. The live printer reports `05.15.XB22Q5`.
+- Compared an older official XB05O7 package with XB22Q5. The embedded signing key, suspend scripts, Realtek firmware blob, Wi-Fi module arguments, and HTTP/API-shaped string set are stable; the 8723DU kernel module changed. See [the release comparison](research/official-release-comparison.md).
 - Rehosted the ARM `nwsoc` application under QEMU. It reaches the internal EPIDC/D4 controller handshake, then stops before Wi-Fi initialization.
 - Identified a candidate change to the Realtek 8723DU module arguments: `rtw_power_mgnt=1 rtw_enusbss=1` to `0,0`. **This has not been validated as a fix.** The loader can also select an 8821CU driver, and the test printer's actual USB product identifier is unknown.
 - Found a boot hook in the extracted firmware: `/opt/nwsoc_data/ExtBoot`, executed before `nwsoc`. No verified network method to write this hook has been found.
 - Traced the updater's network POST selection and generic SHA-256/ECDSA P-256 verification code. The ET-3850 RCX signature verifies against an embedded public key, but the updater's compiled key table omits XB20 and its model-specific path is unresolved. A modified RCX is not currently installable. See [the updater signature trace](research/updater-signature.md).
+- Found a documented Epson Device Admin **Load from PC** firmware workflow. Epson materials list the ET-3850 as Device Admin compatible, but the firmware feature and accepted format have not been checked on this unit. See [the Device Admin lead](research/device-admin-lead.md).
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
 - Traced a possible ENPC hostname-to-DHCP shell path. The authenticated network configuration session and same-value write work on the live printer. The configuration-scope transition and command execution remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
 
@@ -39,6 +41,8 @@ python scripts/inspect_signature_block.py path/to/FWCJ61TL.rcx
 For a cryptographic consistency check using the public key embedded in this XB22Q5 RCX, install Python's `cryptography` package and run `python scripts/verify_rcx_signature.py path/to/FWCJ61TL.rcx`. This embedded-key check alone does not prove that the printer trusts or rejects the image.
 
 With the matching `EPFWUPD.exe` from the same recovery download, run `python scripts/check_updater_key_table.py path/to/EPFWUPD.exe path/to/FWCJ61TL.rcx` to reproduce the generic key-table comparison.
+
+To compare two separately obtained official RCX files, run `python scripts/compare_official_releases.py path/to/older.rcx path/to/newer.rcx`.
 
 ## Reproduce offline extraction
 
