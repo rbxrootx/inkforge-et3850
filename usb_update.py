@@ -89,8 +89,8 @@ def transfer(path: Path, send: bool = False, transport: str = "usbprint") -> dic
         print(f"GM: {gm.strip()}", flush=True)
         if gm != "fl:01:OK;\x0c":
             raise IOError("printer did not grant firmware download mode")
-        d4.close_channel(sid)
-
+        # EPFWUPD's successful FL/GM path keeps EPSON-CTRL open until after
+        # the DATA transfer; its update-end routine reuses this socket.
         data_sid = d4.open("EPSON-DATA")
         total = len(blob)
         sent = 0
@@ -112,7 +112,6 @@ def transfer(path: Path, send: bool = False, transport: str = "usbprint") -> dic
         d4.close_channel(data_sid)
         print(f"Data transport finished in {time.monotonic() - start:.1f}s; requesting update-end status", flush=True)
         d4.pipe.read_timeout_seconds = 180
-        sid = d4.open("EPSON-CTRL")
         finish = reply_text(d4.call(sid, b"gm", b"\x03"), b"fl:03:")
         print(f"GM end: {finish.strip()}", flush=True)
         if finish != "fl:03:OK;\x0c":

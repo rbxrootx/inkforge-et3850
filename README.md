@@ -4,17 +4,17 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 
 ## Custom Python jailbreak workbench
 
-Run `python et3850.py` from this directory to open the retro graphical client. It has live Windows USB and print-queue discovery, an ET-3850 USBPRINT D4 version/status query, offline RCX inspection, a hash-locked Wi-Fi/Telnet candidate builder, an explicit-address SSH/Telnet reachability check, and LCD theme previews. `Pillow` is needed for the preview and `cryptography` for embedded-key signature verification; the USB transport itself uses the Python standard library. The client is our code and does not execute Epson's updater.
+Run `python et3850_mod.py` from this directory to open the retro graphical client. It has live Windows USB and print-queue discovery, an ET-3850 USBPRINT D4 version/status query, offline RCX inspection, a hash-locked Wi-Fi/Telnet candidate builder, an explicit-address SSH/Telnet reachability check, and LCD theme previews. `Pillow` is needed for the preview and `cryptography` for embedded-key signature verification; the USB transport itself uses the Python standard library. The client is our code and does not execute Epson's updater.
 
 The builder uses files in local `work/`: the pinned XB22Q5 RCX and rebuilt first and second SquashFS images. Its output also stays in `work/`, outside this public research repository. The default GUI paths match this investigation's local layout. The command-line forms are:
 
 ```powershell
-python et3850.py status
-python et3850.py usb-status
-python et3850.py inspect ..\..\work\FWCJ61TL.rcx
-python et3850.py build ..\..\work\FWCJ61TL.rcx ..\..\work\telnet_squashfs_1.img ..\..\work\telnet_wifi_candidate.rcx --first-squashfs ..\..\work\telnet_squashfs_0.img
-python et3850.py flash ..\..\work\telnet_wifi_candidate.rcx
-python et3850.py services PRINTER_IP
+python et3850_mod.py status
+python et3850_mod.py usb-status
+python et3850_mod.py inspect ..\..\work\FWCJ61TL.rcx
+python et3850_mod.py build ..\..\work\FWCJ61TL.rcx ..\..\work\telnet_squashfs_1.img ..\..\work\telnet_wifi_candidate.rcx --first-squashfs ..\..\work\telnet_squashfs_0.img
+python et3850_mod.py flash ..\..\work\telnet_wifi_photo_candidate.rcx
+python et3850_mod.py services PRINTER_IP
 ```
 
 The `flash` command shown above is preflight only. An experimental `--send` option exists, but the full signed-image transfer has **not** completed on the attached printer. USBPRINT attempts entered update mode, sent partial signed-stock data, and ended with Windows error 5; the printer rebooted and again answered version `XB22Q5`. WinUSB accepts control commands but rejected the DATA socket before receiving image bytes. Do not interpret this as a successful stock or custom install. The custom image also fails normal signature verification; its isolated length-gate bypass has not been demonstrated on the device. Telnet has not been enabled. See [USB route](research/usb-update-route.md), [photo wallpaper](research/photo-wallpaper.md), and [Telnet unlock path](research/telnet-unlock.md).

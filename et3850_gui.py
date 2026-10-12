@@ -9,7 +9,7 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-import et3850 as core
+import et3850_mod as core
 
 
 BG = "#080b1c"
