@@ -16,10 +16,13 @@ Segment 0 is 5,686,304 bytes, SHA-256 `7bdc1c0562adda78bb541cbadac1ac104367c0b83
 
 - `0x4591465c` reads a pointer from event offset `+0x0c`, checks that its first 32 bytes are in the base64 alphabet, and then calls `0x4589b0fc`. The event dispatcher at `0x45914f78` routes group `0x6e`, subcommand `0x1a` to this function through jump-table entry 26.
 - `0x4589b0fc` builds `SetupData:` followed by those 32 bytes. It calls internal request function `0x45898378` and compares the reply prefix to `HR:200`. This proves an internal message format, not that a LAN client can send it.
+- A separate routine at `0x4591130c` checks for a `SetupData:` prefix in an incoming buffer and copies data after that prefix into controller state. Direct ARM calls and 32-bit function-pointer references to this routine were not found in the decoded segment; its registration and transport remain unresolved.
 - `0x4589be1c` and `0x4589be54` enqueue group `0x6e`, subcommand `0x1a`. The only direct ARM callers found in this decoded segment are `0x457eb118` and `0x457eb1ac`, respectively. An indirect caller or another image could exist.
 - Both callers build a buffer using `0x457e9330`, which writes the `IPPRes:` prefix, a three-digit status, and CRLF before appending payload bytes. `0x457eb118` is directly called by `0x45947da8`, a routine that serializes configuration fields into an IPP response-shaped buffer. The latter is reached from a group `0xb0` dispatcher at `0x4593b968`.
 
 The observed `IPPRes:` producer and base64-only consumer do not fit: the prefix contains `:`, which fails the consumer's first-32-byte check. This may be an unused path, a build-time mismatch, or an analysis gap. It is **not** a demonstrated way to send setup data from the LAN. The exact role of the `SetupData:` request and its internal peer remains open.
+
+The [isolated ARM emulation](../scripts/emulate_setup_gate.py) runs the actual `0x4591465c` instructions from the hash-checked controller segment. It stops before the internal request call. An `IPPRes:200` prefix and 31 base64 characters both return before that call; 32 base64 characters reach it. This verifies the input gate, but it does not emulate the controller OS or prove any network entry point.
 
 ## `ReadSetup` and `WriteSetup` strings
 
