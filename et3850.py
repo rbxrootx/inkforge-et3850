@@ -240,7 +240,8 @@ def inspect_firmware(path: Path) -> dict:
 
 
 def build_candidate(original: Path, squashfs: Path, output: Path,
-                    append_byte: bool = True, patch_ipl: bool = True) -> dict:
+                    append_byte: bool = True, patch_ipl: bool = True,
+                    first_squashfs: Path | None = None) -> dict:
     """Run our existing hash-locked offline builder as an isolated Python process."""
     original, squashfs, output = (p.resolve() for p in (original, squashfs, output))
     if original == output or squashfs == output:
@@ -251,6 +252,11 @@ def build_candidate(original: Path, squashfs: Path, output: Path,
         raise ValueError("source is not the pinned XB22Q5 RCX")
     command = [sys.executable, str(SCRIPTS / "build_length_gate_candidate.py"),
                str(original), str(squashfs), str(output)]
+    if first_squashfs:
+        first_squashfs = first_squashfs.resolve()
+        if first_squashfs == output:
+            raise ValueError("first SquashFS input and RCX output must differ")
+        command.extend(["--replacement-first-squashfs", str(first_squashfs)])
     if append_byte:
         command.append("--append-byte")
     if patch_ipl:
@@ -277,6 +283,8 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("gui", help="launch the retro graphical workbench")
     sub.add_parser("status", help="read local USB and printer queue status")
+    usb_status = sub.add_parser("usb-status", help="read live D4 version and status")
+    usb_status.add_argument("--winusb", action="store_true", help="use MI_02 instead of USBPRINT MI_01")
     inspect = sub.add_parser("inspect", help="offline RCX integrity and signature report")
     inspect.add_argument("rcx", type=Path)
     build = sub.add_parser("build", help="build an offline length-gate candidate")
@@ -285,6 +293,11 @@ def main() -> None:
     build.add_argument("output_rcx", type=Path)
     build.add_argument("--no-append-byte", action="store_true")
     build.add_argument("--no-ipl-patch", action="store_true")
+    build.add_argument("--first-squashfs", type=Path)
+    flash = sub.add_parser("flash", help="hash-locked RCX preflight; --send contacts the printer")
+    flash.add_argument("rcx", type=Path)
+    flash.add_argument("--send", action="store_true")
+    flash.add_argument("--transport", choices=("usbprint", "winusb"), default="usbprint")
     probe = sub.add_parser("services", help="probe only TCP 22/23 on the supplied address")
     probe.add_argument("host")
     args = parser.parse_args()
@@ -295,12 +308,19 @@ def main() -> None:
     if args.command == "status":
         result = {"usb": usb_devices(), "queues": printer_queues(),
                   "winusb": usb_bulk_interface(),
-                  "update_transport": "not validated; no firmware sent"}
+                  "update_transport": "partial signed-stock transfer only; no custom image sent"}
+    elif args.command == "usb-status":
+        from usb_d4 import read_identity
+        result = read_identity(args.winusb)
     elif args.command == "inspect":
         result = inspect_firmware(args.rcx)
     elif args.command == "build":
         result = build_candidate(args.source_rcx, args.replacement_squashfs, args.output_rcx,
-                                 not args.no_append_byte, not args.no_ipl_patch)
+                                 not args.no_append_byte, not args.no_ipl_patch,
+                                 args.first_squashfs)
+    elif args.command == "flash":
+        from usb_update import transfer
+        result = transfer(args.rcx, args.send, args.transport)
     else:
         result = tcp_services(args.host)
     print(json.dumps(result, indent=2))

@@ -13,6 +13,8 @@ from pathlib import Path
 import struct
 
 ORIGINAL_SHA256 = '103c9514e57f143f2619abcd280bd4d0926abf5370e03d28753a334ae02cd675'
+FIRST_SQUASHFS_OFFSET = 0xEA7112
+FIRST_SQUASHFS_USED = 2008372
 SQUASHFS_OFFSET = 0x1197112
 SQUASHFS_USED = 2630538
 SIGN_OFFSET = 0x112
@@ -58,6 +60,8 @@ def main():
     parser.add_argument('original_rcx', type=Path)
     parser.add_argument('replacement_squashfs', type=Path)
     parser.add_argument('output_rcx', type=Path)
+    parser.add_argument('--replacement-first-squashfs', type=Path,
+                        help='optional first SquashFS with a protected root login')
     parser.add_argument('--append-byte', action='store_true',
                         help='append one byte and increase unsigned Z_1 size to match declared length')
     parser.add_argument('--patch-ipl-finalizer', action='store_true',
@@ -84,6 +88,21 @@ def main():
     if used < 4096 or used > SQUASHFS_USED or used > len(replacement):
         parser.error('replacement SquashFS does not fit original slot')
     candidate = bytearray(original)
+    if args.replacement_first_squashfs:
+        first_replacement = args.replacement_first_squashfs.read_bytes()
+        if original[FIRST_SQUASHFS_OFFSET:FIRST_SQUASHFS_OFFSET + 4] != b'hsqs' or first_replacement[:4] != b'hsqs':
+            parser.error('first SquashFS magic missing')
+        first_used = struct.unpack_from('<Q', first_replacement, 40)[0]
+        if first_used < 4096 or first_used > len(first_replacement):
+            parser.error('invalid first SquashFS size')
+        if FIRST_SQUASHFS_OFFSET + first_used >= SQUASHFS_OFFSET:
+            parser.error('first SquashFS overlaps the second')
+        padding = original[FIRST_SQUASHFS_OFFSET + FIRST_SQUASHFS_USED:FIRST_SQUASHFS_OFFSET + first_used]
+        if any(padding):
+            parser.error('first SquashFS extension would overwrite nonpadding bytes')
+        candidate[FIRST_SQUASHFS_OFFSET:FIRST_SQUASHFS_OFFSET + first_used] = first_replacement[:first_used]
+    else:
+        first_used = None
     candidate[SQUASHFS_OFFSET:SQUASHFS_OFFSET + SQUASHFS_USED] = replacement[:used].ljust(SQUASHFS_USED, b'\0')
     if args.patch_ipl_finalizer:
         instruction = struct.unpack_from('<I', candidate, IPL0_FINALIZER_BRANCH)[0]
@@ -121,6 +140,7 @@ def main():
     print('source_sha256', hashlib.sha256(original).hexdigest())
     print('candidate_sha256', hashlib.sha256(candidate).hexdigest())
     print('replacement_squashfs_used', used)
+    print('replacement_first_squashfs_used', first_used)
     print('declared_payload_length', declared, '->', declared + 1)
     print('trailing_bytes', trailing)
     print('first_ipl_finalizer_branch_patch', args.patch_ipl_finalizer)

@@ -4,23 +4,26 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 
 ## Custom Python jailbreak workbench
 
-Run `python et3850.py` from this directory to open the retro graphical client. It has live Windows USB and print-queue discovery, read-only WinUSB pipe descriptors, offline RCX inspection, a hash-locked Wi-Fi candidate builder, an explicit-address SSH/Telnet reachability check, and LCD theme previews. `Pillow` is needed for the preview and `cryptography` for embedded-key signature verification; the rest of the client uses the Python standard library. The client is our code and does not execute Epson's official updater.
+Run `python et3850.py` from this directory to open the retro graphical client. It has live Windows USB and print-queue discovery, an ET-3850 USBPRINT D4 version/status query, offline RCX inspection, a hash-locked Wi-Fi/Telnet candidate builder, an explicit-address SSH/Telnet reachability check, and LCD theme previews. `Pillow` is needed for the preview and `cryptography` for embedded-key signature verification; the USB transport itself uses the Python standard library. The client is our code and does not execute Epson's updater.
 
-The builder uses separately obtained files in local `work/`: the original XB22Q5 RCX and a rebuilt second SquashFS. Its output also stays in `work/`, outside this public research repository. The default GUI paths match this investigation's local layout. The command-line forms are:
+The builder uses files in local `work/`: the pinned XB22Q5 RCX and rebuilt first and second SquashFS images. Its output also stays in `work/`, outside this public research repository. The default GUI paths match this investigation's local layout. The command-line forms are:
 
 ```powershell
 python et3850.py status
+python et3850.py usb-status
 python et3850.py inspect ..\..\work\FWCJ61TL.rcx
-python et3850.py build ..\..\work\FWCJ61TL.rcx ..\..\work\candidate_squashfs_1.img ..\..\work\client_candidate.rcx
+python et3850.py build ..\..\work\FWCJ61TL.rcx ..\..\work\telnet_squashfs_1.img ..\..\work\telnet_wifi_candidate.rcx --first-squashfs ..\..\work\telnet_squashfs_0.img
+python et3850.py flash ..\..\work\telnet_wifi_candidate.rcx
 python et3850.py services PRINTER_IP
 ```
 
-The current workbench **does not transmit firmware or unlock a shell**. The `FLASH PATH` panel shows the missing USB framing, recovery, and trust checks. The candidate's record checks pass offline while its normal signature does not verify against the running IPL key. See [USB route](research/usb-update-route.md) and [Telnet unlock path](research/telnet-unlock.md).
+The `flash` command shown above is preflight only. An experimental `--send` option exists, but the full signed-image transfer has **not** completed on the attached printer. USBPRINT attempts entered update mode, sent partial signed-stock data, and ended with Windows error 5; the printer rebooted and again answered version `XB22Q5`. WinUSB accepts control commands but rejected the DATA socket before receiving image bytes. Do not interpret this as a successful stock or custom install. The custom image also fails normal signature verification; its isolated length-gate bypass has not been demonstrated on the device. Telnet has not been enabled. See [USB route](research/usb-update-route.md), [photo wallpaper](research/photo-wallpaper.md), and [Telnet unlock path](research/telnet-unlock.md).
 
 ## Current state
 
 - Extracted Epson's official XB22Q5 recovery package. The live printer reports `05.15.XB22Q5`.
-- The owner connected the ET-3850 by USB. Windows sees composite `VID_04B8&PID_1181`; Epson Utility interface `MI_02` has 512-byte bulk OUT `0x08` and IN `0x89` endpoints. Static updater analysis found a local `EPSON-CTRL`/`EPSON-DATA` firmware update sequence and generic WinUSB bulk code. Their exact interface mapping and recovery behavior remain unproved. See [USB connection](research/usb-connection-and-recovery.md) and [local update trace](research/usb-update-route.md).
+- The owner connected the ET-3850 by USB. Windows sees composite `VID_04B8&PID_1181`. Our own Python client opened USBPRINT `MI_01`, negotiated IEEE 1284.4 D4, read `vi`/`st` from `EPSON-CTRL`, and opened `EPSON-DATA` with MTU 32768. WinUSB `MI_02` also answers D4 control but rejects `EPSON-DATA`. Full signed-image transfer still fails before update-end; see [local update trace](research/usb-update-route.md).
+- Re-encoded the owner's photo as an exact-size 320x240 PNG inside the UI CROM, then merged that verified CROM into a local Wi-Fi/Telnet candidate. The complete decoded UI image differs only at the wallpaper PNG, and all three RCX record integrity checks pass. Normal signature verification still rejects the offline image; see [photo wallpaper](research/photo-wallpaper.md).
 - Located the owner's 320×240 blue LCD wave background in a decoded controller CROM. A violet/cyan palette change was patched into the compressed CROM and verified offline: re-decoding changes only that PNG. A richer demoscene-style preview is prepared, but its full image replacement and installation remain unverified. See [LCD background assets](research/lcd-background.md).
 - Compared an older official XB05O7 package with XB22Q5. The embedded signing key, suspend scripts, Realtek firmware blob, Wi-Fi module arguments, and HTTP/API-shaped string set are stable; the 8723DU kernel module changed. See [the release comparison](research/official-release-comparison.md).
 - Rehosted the ARM `nwsoc` application under QEMU with synthetic controller replies. Both the original and patched binaries reach D4 communication, PCIF, and SNMP initialization. An offline-only WebApp shim also opens HTTP listeners on ports 80 and 443 inside an isolated network namespace. The mock does not supply the USB detector or valid later D4 events, so the Realtek driver command has not run. See [the application rehost trace](research/application-rehost.md).
@@ -110,7 +113,7 @@ scripts/repack_wifi_candidate.sh path/to/squashfs_1.img path/to/nwsoc.wifi-power
 python scripts/build_self_signed_control.py --input path/to/FWCJ61TL.rcx --squashfs path/to/repacked.img --output path/to/offline-control.rcx
 ```
 
-The suspend-script candidate keeps USB `power/control` at `on` and blocks Realtek autosuspend when the firmware calls the enable-suspend script. That call appears in a USB/Bluetooth initialization path; whether the script influences the reported Wi-Fi fault is unknown. All candidates are offline research artifacts. There is no install command in this repository. The repack script requires Linux `unsquashfs` and `mksquashfs` and leaves its temporary extraction path for inspection.
+The suspend-script candidate keeps USB `power/control` at `on` and blocks Realtek autosuspend when the firmware calls the enable-suspend script. That call appears in a USB/Bluetooth initialization path; whether the script influences the reported Wi-Fi fault is unknown. All custom candidates remain offline research artifacts. The experimental USB sender has not completed a signed-image transfer. The repack script requires Linux `unsquashfs` and `mksquashfs` and leaves its temporary extraction path for inspection.
 
 ## Reporting
 

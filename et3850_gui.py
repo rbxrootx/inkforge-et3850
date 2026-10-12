@@ -33,8 +33,10 @@ class App:
         self.root.minsize(960, 650)
         self.events: queue.Queue = queue.Queue()
         self.source = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "FWCJ61TL.rcx"))
-        self.squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "candidate_squashfs_1.img"))
-        self.destination = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "client_candidate.rcx"))
+        self.squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_squashfs_1.img"))
+        self.first_squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_squashfs_0.img"))
+        self.destination = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_wifi_candidate.rcx"))
+        self.flash_image = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_wifi_photo_candidate.rcx"))
         self.host = tk.StringVar()
         self.append_byte = tk.BooleanVar(value=True)
         self.patch_ipl = tk.BooleanVar(value=True)
@@ -130,14 +132,15 @@ class App:
         row = tk.Frame(card, bg=PANEL)
         row.pack(anchor="w", pady=(12, 0))
         self._button(row, "REFRESH USB + QUEUE", self.refresh_device)
+        self._button(row, "QUERY LIVE D4", self.query_usb_status, PINK)
         card = self._card(title="02 / WHAT THIS PRINTER RUNS")
         self._line(card, "Linux 4.4.27 / ARM / uClibc / SquashFS", LIME)
         self._line(card, "The active network software and Realtek Wi-Fi driver are inside the extracted firmware.")
         self._line(card, "Telnet is present behind a maintenance authentication flag. Stock SSH has not been established.")
         card = self._card(title="03 / MISSION STATE")
         self._line(card, "PATCH  ›  offline candidate built and emulated", LIME)
-        self._line(card, "USB     ›  vendor bulk endpoints discovered; firmware framing unresolved", PINK)
-        self._line(card, "FLASH   ›  no accepted custom install; no device image sent", PINK)
+        self._line(card, "USB     ›  D4 control and data channels mapped; full transfer unresolved", PINK)
+        self._line(card, "FLASH   ›  signed stock transfer partial; no custom image sent", PINK)
         self._line(card, "PRINT   ›  cake page ready; final print follows verified mod", MUTED)
 
     def _file_row(self, parent, label, variable, save=False):
@@ -158,7 +161,8 @@ class App:
         self._title("PATCH LAB", "Build and inspect the Wi-Fi power candidate entirely offline. Firmware files stay in local scratch space.")
         card = self._card(title="INPUT / OUTPUT")
         self._file_row(card, "PINNED XB22Q5 SOURCE RCX", self.source)
-        self._file_row(card, "REBUILT Wi-Fi SQUASHFS", self.squashfs)
+        self._file_row(card, "REBUILT ROOT / LOGIN SQUASHFS", self.first_squashfs)
+        self._file_row(card, "REBUILT Wi-Fi / TELNET SQUASHFS", self.squashfs)
         self._file_row(card, "CANDIDATE RCX OUTPUT", self.destination, save=True)
         opts = tk.Frame(card, bg=PANEL)
         opts.pack(anchor="w", pady=10)
@@ -179,21 +183,29 @@ class App:
         self.patch_report.insert("end", "Select an RCX to inspect, or build from the pinned source and rebuilt SquashFS.\n\nNo image is sent to the printer.")
 
     def _page_flash_path(self):
-        self._title("FLASH PATH", "Protocol work toward an installer. These gates describe evidence, not a simulated success screen.")
-        card = self._card(title="LOCAL TRANSPORT / SEEN IN STATIC CODE")
-        self._line(card, "EPSON-CTRL  ›  fl / gm command bytes  ›  expected OK reply", LIME)
-        self._line(card, "EPSON-DATA  ›  bounded firmware chunks  ›  update-end control command", LIME)
-        self._line(card, "Attached MI_02 has bulk OUT 0x08 and bulk IN 0x89, 512-byte packets.")
+        self._title("FLASH PATH", "The attached USBPRINT D4 channel is live. Full transfer and image acceptance remain unverified.")
+        card = self._card(title="LOCAL TRANSPORT")
+        self._line(card, "USBPRINT MI_01 returned the printer's XB22Q5 version and status.", LIME)
+        self._line(card, "EPSON-CTRL carries fl / gm update commands; EPSON-DATA carries the RCX binary stream.")
         card = self._card(title="INSTALL GATES")
         for label, state in (("Physical USB link", "OBSERVED"),
-                             ("Exact CTRL/DATA framing", "OPEN"),
+                             ("CTRL version/status framing", "OBSERVED"),
+                             ("DATA firmware transfer", "OPEN"),
                              ("Recovery mode and restore", "OPEN"),
                              ("Device trust / acceptance", "OPEN"),
                              ("Custom image installed", "NO")):
             self._line(card, f"{label:<35} {state}", LIME if state == "OBSERVED" else PINK)
-        card = self._card(title="TRANSMISSION LOCK")
-        self._line(card, "No firmware upload is available yet. The current candidate fails normal verification against the running IPL key.", PINK)
-        self._line(card, "The offline length-gate path is promising, but boot ROM and downstream flash checks are still unknown.")
+        card = self._card(title="CHECKED USB INSTALLER")
+        self._file_row(card, "HASH-LOCKED RCX TO PREFLIGHT OR SEND", self.flash_image)
+        self._line(card, "Pinned stock, Wi-Fi/Telnet, and photo-wallpaper candidate hashes pass preflight.", LIME)
+        self._line(card, "The custom image fails normal signature verification. A device rejection or failed boot is possible.", PINK)
+        row = tk.Frame(card, bg=PANEL)
+        row.pack(anchor="w", pady=(8, 0))
+        self._button(row, "PREFLIGHT CANDIDATE", self.preflight_flash)
+        self._button(row, "SEND TO ATTACHED PRINTER", self.send_flash, PINK)
+        self.flash_result = tk.StringVar(value="No firmware sent in this session.")
+        tk.Label(card, textvariable=self.flash_result, bg=PANEL, fg=LIME,
+                 font=(FONT, 10), justify="left", wraplength=750).pack(anchor="w", pady=(12, 0))
 
     def _page_shell(self):
         self._title("SHELL ACCESS", "Check SSH and Telnet on the printer address you supply. This is a two-port TCP connect only.")
@@ -215,18 +227,19 @@ class App:
         self._line(card, "Once a custom system boots, an SSH service with a chosen key could be added. No shell is available through this client today.", PINK)
 
     def _page_lcd_theme(self):
-        self._title("LCD THEME", "A 320×240 palette edit was verified inside a decoded controller image. These are offline previews.")
+        self._title("LCD THEME", "The owner's photo was rebuilt into an offline 320×240 UI image. Device display is unverified.")
         try:
             from PIL import Image, ImageTk
-            image = Image.open(core.ASSETS / "demoscene-wave-preview.png").convert("RGB")
+            photo = core.ROOT.parent / "et3850-wallpaper-photo-preview.png"
+            image = Image.open(photo if photo.exists() else core.ASSETS / "demoscene-wave-preview.png").convert("RGB")
             image.thumbnail((760, 365))
             self.preview = ImageTk.PhotoImage(image)
             tk.Label(self.content, image=self.preview, bg=BG).pack(anchor="w", pady=(0, 13))
         except (ImportError, OSError) as error:
             tk.Label(self.content, text=f"Preview unavailable: {error}", bg=BG, fg=PINK).pack(anchor="w")
         card = self._card(title="PIXEL STATUS")
-        self._line(card, "Concept: violet/cyan demoscene wave. Device size: 320×240.", CYAN)
-        self._line(card, "Verified offline: compressed CROM palette patch changes only the 22,014-byte background PNG.", LIME)
+        self._line(card, "Owner photo: exact original people, cropped to the 320×240 screen.", CYAN)
+        self._line(card, "Verified offline: rebuilt CROM changes only the 22,014-byte wallpaper PNG.", LIME)
         self._line(card, "LCD replacement and custom firmware installation have not happened.", PINK)
 
     def _page_session_log(self):
@@ -293,6 +306,39 @@ class App:
                 self.device_text.set("\n".join(lines))
         self._run_background("Reading USB and spooler", lambda: (core.usb_devices(), core.printer_queues(), core.usb_bulk_interface()), done)
 
+    def query_usb_status(self):
+        import subprocess
+        import sys
+        def task():
+            process = subprocess.run([sys.executable, str(core.ROOT / "usb_d4.py")],
+                                     capture_output=True, text=True, timeout=20)
+            if process.returncode:
+                raise RuntimeError(process.stderr.strip() or "D4 query failed")
+            return json.loads(process.stdout)
+        def done(result):
+            self._log("Live D4 identity/status read completed")
+            if self.view_name == "OVERVIEW":
+                self.device_text.set(json.dumps(result, indent=2))
+        self._run_background("Reading live USB D4 status", task, done)
+
+    def preflight_flash(self):
+        from usb_update import transfer
+        path = Path(self.flash_image.get())
+        def done(result):
+            self._log("Firmware transfer preflight completed")
+            if self.view_name == "FLASH PATH":
+                self.flash_result.set(json.dumps(result, indent=2))
+        self._run_background("Checking exact firmware hash and records", lambda: transfer(path), done)
+
+    def send_flash(self):
+        from usb_update import transfer
+        path = Path(self.flash_image.get())
+        def done(result):
+            self._log("USB transfer ended; verify printer boot and services")
+            if self.view_name == "FLASH PATH":
+                self.flash_result.set(json.dumps(result, indent=2))
+        self._run_background("Sending checked firmware over USB D4", lambda: transfer(path, True), done)
+
     def inspect_path(self, path):
         if not path:
             return
@@ -305,7 +351,7 @@ class App:
 
     def build_patch(self):
         args = (Path(self.source.get()), Path(self.squashfs.get()), Path(self.destination.get()),
-                self.append_byte.get(), self.patch_ipl.get())
+                self.append_byte.get(), self.patch_ipl.get(), Path(self.first_squashfs.get()))
         def done(result):
             self._log("Offline build completed" if result["returncode"] == 0 else "Offline build failed")
             if self.view_name == "PATCH LAB":
