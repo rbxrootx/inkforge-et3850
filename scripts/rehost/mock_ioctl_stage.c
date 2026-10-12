@@ -7,6 +7,12 @@ extern int snprintf(char *buffer, unsigned int size, const char *format, ...);
 int ioctl(int fd, unsigned long request, void *arg);
 static unsigned char channel_by_fd[64];
 static unsigned int channel_info_stage;
+#if defined(MOCK_STREAM_RESULT) && !defined(MOCK_GET_REQUEST_ID)
+#error MOCK_STREAM_RESULT requires MOCK_GET_REQUEST_ID
+#endif
+#ifdef MOCK_STREAM_RESULT
+static unsigned int marker_stream_stage;
+#endif
 static const unsigned char channel_info_reply[] =
     "UpChannelNum:01\x1b\r\nDownChannelNum:01\x1b\r\n";
 static const unsigned char main_version_reply[] =
@@ -17,6 +23,10 @@ static const unsigned char main_year_reply[] =
 /* Deliberately invented response for offline body-path control-flow research. */
 static const unsigned char get_request_id_reply[] =
     "HR:200\x1b\r\nRequestID:0\x1b\r\nChID:1\x1b\r\n";
+#endif
+#ifdef MOCK_STREAM_RESULT
+/* Also invented: confirms only that Linux handles a successful stream reply. */
+static const unsigned char marker_stream_reply[] = "HR:200\x1b\r\n";
 #endif
 static const unsigned char *active_reply = channel_info_reply;
 static u32 active_reply_length = sizeof(channel_info_reply) - 1;
@@ -48,8 +58,15 @@ static void trace_send_bytes(int fd, u32 *packet) {
     int used;
     unsigned int count;
     const unsigned char *source;
-    if (fd < 0 || fd >= 64 || channel_by_fd[fd] != 10 || packet[1] > 256 || lines++ >= 24) return;
+    int marker = 0;
+    if (fd < 0 || fd >= 64 || packet[1] > 256) return;
     source = (const unsigned char *)packet[0];
+#ifdef MOCK_STREAM_RESULT
+    marker = channel_by_fd[fd] == 16 && packet[1] == 19 &&
+             contains_bytes(source, packet[1], "ET3850-OFFLINE-TEST", 19);
+#endif
+    if (channel_by_fd[fd] != 10 && !marker) return;
+    if (lines++ >= 24 && !marker) return;
     count = packet[1] < 128 ? packet[1] : 128;
     used = snprintf(line, sizeof(line), "MOCK SENDHEX fd=%d len=%u data=", fd, packet[1]);
     for (unsigned int i = 0; i < count && used > 0 && used + 4 < (int)sizeof(line); ++i)
@@ -80,6 +97,13 @@ int ioctl(int fd, unsigned long request, void *arg) {
     if (request == 0xc018fe02UL) {
         trace_request("SEND", fd, packet, 6);
         trace_send_bytes(fd, packet);
+#ifdef MOCK_STREAM_RESULT
+        if (fd >= 0 && fd < 64 && channel_by_fd[fd] == 16 && packet[1] == 19 &&
+            contains_bytes((const unsigned char *)packet[0], packet[1],
+                           "ET3850-OFFLINE-TEST", 19)) {
+            marker_stream_stage = 1;
+        }
+#endif
         if (fd >= 0 && fd < 64 && channel_by_fd[fd] == 10 && 8 < packet[1] && packet[1] < 256) {
             const unsigned char *sent = (const unsigned char *)packet[0];
             active_reply = channel_info_reply;
@@ -109,6 +133,29 @@ int ioctl(int fd, unsigned long request, void *arg) {
         static const unsigned char event_header[] = {0, 0, 0, 0, 0, 0, 0, 0};
         if (fd >= 0 && fd < 64 && channel_by_fd[fd] >= 10) {
             unsigned char *destination = (unsigned char *)packet[0];
+#ifdef MOCK_STREAM_RESULT
+            if (channel_by_fd[fd] == 16 && marker_stream_stage == 1 && packet[1] >= 8) {
+                u32 n = sizeof(marker_stream_reply) - 1;
+                destination[0] = (unsigned char)(n >> 8);
+                destination[1] = (unsigned char)n;
+                for (u32 i = 2; i < 8; ++i) destination[i] = 0;
+                packet[2] = 8;
+                packet[3] = 0;
+                packet[5] = 0;
+                marker_stream_stage = 2;
+                return 0;
+            }
+            if (channel_by_fd[fd] == 16 && marker_stream_stage == 2 &&
+                packet[1] >= sizeof(marker_stream_reply) - 1) {
+                for (u32 i = 0; i < sizeof(marker_stream_reply) - 1; ++i)
+                    destination[i] = marker_stream_reply[i];
+                packet[2] = sizeof(marker_stream_reply) - 1;
+                packet[3] = 1;
+                packet[5] = 0;
+                marker_stream_stage = 3;
+                return 0;
+            }
+#endif
             if (channel_by_fd[fd] == 10 && channel_info_stage == 1 && packet[1] >= 8) {
                 u32 n = active_reply_length;
                 destination[0] = (unsigned char)(n >> 8);
