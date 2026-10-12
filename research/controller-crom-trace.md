@@ -31,6 +31,12 @@ The decoded controller's group `0x76` receive loop at `0x458099ec` reads a subco
 
 The nearby decoded data contains `/DOWN/FIRMWAREUPDATE/`, but no direct 32-bit pointer to its first character was found. The `Method:` / `URI:` parser and that path string cannot be joined solely by their proximity in this image. An active caller, route-table selection, and signature decision remain necessary before testing a modified RCX on the printer.
 
+An [isolated execution of this dispatcher](controller-event-table-memory-safety.md)
+shows that subcommands 7, 8, and 9 execute table bytes as conditional stores
+to low virtual addresses (`0x9eb`, `0xa0c`, and `0xa69` with the supplied event).
+This is a memory-safety lead in the decoded image. The event's LAN
+reachability and the live controller's memory mapping are still unknown.
+
 The additional `0x0b` dispatch finding gives another reason not to treat the `SetupData:` request as a working update channel in this build: its queued command currently selects a loop-back entry. The image also contains `/DOWN/FIRMWAREUPDATE/` and `EpsonLocalReq:CancelDOWNCONTENT` strings, but neither string alone links the Linux HTTP relay to a flash writer or a signature decision. The `/DOWN/FIRMWAREUPDATE/` bytes start at `0x45ae594f`; no exact 32-bit pointer to that address was found in this segment. A nearby literal used by `0x4590d4d4` points to the preceding NUL byte at `0x45ae594e`, so that routine does not establish use of the path.
 
 The [isolated ARM emulation](../scripts/emulate_setup_gate.py) runs the actual `0x4591465c` instructions from the hash-checked controller segment. It stops before the internal request call. An `IPPRes:200` prefix and 31 base64 characters both return before that call; 32 base64 characters reach it. This verifies the input gate, but it does not emulate the controller OS or prove any network entry point.
