@@ -9,7 +9,7 @@ Read-only observation of a local ET-3850 on firmware `05.15.XB22Q5`:
 - The extracted `nwsoc` image includes `/opt/nwsoc/public_key/enup.pem` and an ENUP authentication path. Successful authentication creates `/tmp/enup_auth_success`, after which a watcher starts Telnet. Static inspection shows a random challenge and one-time-password comparison. No valid authentication or bypass has been found.
 - Static analysis identifies an `EPSON` packet parser bound to UDP 3289. A read-only `N` request received a 14-byte `EPSONn` response from that port on the live printer. An authenticated configuration session accepted a same-value write and left the network fields unchanged. A zero-length password proof was rejected. The [ENPC/DHCP lead](enpc-dhcp-lead.md) records the remaining command-injection questions.
 
-The live printer was not flashed or reconfigured during this analysis. Its short 30-packet ping baseline had 0% loss and 1-16 ms responses; that sample does not reproduce an intermittent Wi-Fi fault.
+The live printer was not flashed. Authenticated, reversible configuration probes were performed; subsequent readback showed its original Device Name and network fields. Its short 30-packet ping baseline had 0% loss and 1-16 ms responses; that sample does not reproduce an intermittent Wi-Fi fault.
 
 ## Network update gate
 

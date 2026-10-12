@@ -6,7 +6,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 
 - Extracted Epson's official XB22Q5 recovery package. The live printer reports `05.15.XB22Q5`.
 - Rehosted the ARM `nwsoc` application under QEMU. It reaches the internal EPIDC/D4 controller handshake, then stops before Wi-Fi initialization.
-- Identified a candidate change to the Realtek 8723DU module arguments: `rtw_power_mgnt=1 rtw_enusbss=1` to `0,0`. **This has not been validated as a fix.**
+- Identified a candidate change to the Realtek 8723DU module arguments: `rtw_power_mgnt=1 rtw_enusbss=1` to `0,0`. **This has not been validated as a fix.** The loader can also select an 8821CU driver, and the test printer's actual USB product identifier is unknown.
 - Found a boot hook in the extracted firmware: `/opt/nwsoc_data/ExtBoot`, executed before `nwsoc`. No verified network method to write this hook has been found.
 - Confirmed that the official updater binary contains a network transport and host-side firmware signature verification. A modified RCX is not currently installable.
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
@@ -37,7 +37,7 @@ python scripts/patch_candidate.py --input path/to/nwsoc --output path/to/nwsoc.p
 python scripts/patch_suspend_candidate.py --input path/to/wlan_enable_suspend.sh --output path/to/wlan_enable_suspend.sh.patched
 ```
 
-The second candidate keeps USB `power/control` at `on` and blocks Realtek autosuspend when the firmware calls the enable-suspend script. Both candidates are offline research artifacts. There is no install command in this repository.
+The second candidate keeps USB `power/control` at `on` and blocks Realtek autosuspend when the firmware calls the enable-suspend script. That call appears in a USB/Bluetooth initialization path; whether the script influences the reported Wi-Fi fault is unknown. Both candidates are offline research artifacts. There is no install command in this repository.
 
 ## Reporting
 
