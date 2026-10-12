@@ -24,6 +24,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Checked the controller's internal request dispatcher: the `0x41` and `0x42` entries in this image branch back to its wait loop, including the command used by `SetupData:`. The [jump-table check](scripts/inspect_controller_event_routes.py) reproduces the static targets. This path is not a verified network update channel.
 - Confirmed a read-only Epson Remote Mode status command over the printer's private SNMP OID subtree. This shows a network controller command tunnel, but no setup restore command through it. The [status probe](scripts/probe_remote_status.py) prints only response metadata.
 - Surveyed the extracted program's process launchers. A console thread can run shell commands from its input, while the Wi-Fi suspend script arguments come from `/dev/usb-detector`; neither has a demonstrated LAN input route. See [process-launch survey](research/process-launch-survey.md).
+- Traced LPR port 515 control records and the immediate data-file-name helpers. The supplied filename becomes print submission metadata in the inspected path; no direct Linux file write was found there. See [LPR input trace](research/lpd-input-trace.md).
 
 See [firmware layout](research/firmware-layout.md), [network surface](research/network-surface.md), [administrator API and URL inventory](research/admin-api-inventory.md), and [vulnerability notes](research/vulnerabilities.md).
 

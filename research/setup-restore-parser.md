@@ -11,11 +11,14 @@ The separately decoded [controller CROM trace](controller-crom-trace.md) finds `
 3. `0x216248` checks a model/version header, a CRC32 computed by `0x21687c`, and length-prefixed record boundaries. In the inspected branch it does not compare each filename to an allowlist. CRC32 detects accidental corruption but does not authenticate the source.
 4. Following a successful restore-start result, `0x215100` calls archive writer `0x2166fc`. That writer takes a length-prefixed filename directly from each archive record, calls `open(filename, flags)`, and writes the accompanying bytes.
 
+The restore initializer at `0x2158b0` also registers the controller event IDs `0x1b` and `0x1c`. Its callback at `0x214cb0` distinguishes the literal result names `UDBackupStartResult` and `UDRestorationStartResult`; the backup branch starts the 64-byte chunk worker at `0x214f58`. That worker labels requests `SetupData` before forwarding them through `UPPTWriteSetup`. This extends the controller-event trace but still does not identify a LAN producer for chosen restore chunks.
+
 The writer has two branches controlled by a controller-provided mode. Their literal open flags are `0x241` (`O_WRONLY | O_CREAT | O_TRUNC`) and `0x201` (`O_WRONLY | O_TRUNC`). The latter can overwrite an existing file; the former can also create one if the containing directory is writable. The archive writer itself has no path prefix or allowlist check in the inspected code. The backup generator at `0x215c30` draws filenames from a fixed configuration/certificate list, but the restore validator and writer do not compare incoming filenames to that backup list.
 
 ## What remains unproved
 
 - Whether any LAN API can cause the printer controller to send attacker-chosen `WRITESETUP` pieces to this Linux callback. The observed event path originates at the controller interface. The `ReadSetup` and `WriteSetup` strings near `0xea974` are used in an internal local-request mapping, and `EpsonLocalReq:WriteSetup` at `0xea2dc` is framed for the controller channel; neither establishes a reachable HTTP or SNMP endpoint.
+- The live printer's authenticated Web Config menu and its Basic Settings page were read without changing settings. Neither listed a settings export/import control. A generic Epson administrator guide describes such a control for some devices, but this ET-3850 UI observation does not supply a restore upload route.
 - Which controller mode this particular live device uses, whether the controller accepts a modified archive, and what authorization applies before it forwards restore pieces.
 - Whether the candidate Wi-Fi change can be installed through this route. The `/opt/nwsoc_data/ExtBoot` boot hook is a potential target only if the create-capable branch is active and a network-supplied archive reaches the parser. No such archive has been sent to the printer.
 
