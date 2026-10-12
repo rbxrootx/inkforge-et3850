@@ -40,6 +40,14 @@ def main() -> None:
     def provisional(address: int) -> int:
         return address - SHIFT
 
+    def branch_target(address: int) -> int:
+        instruction = word(address)
+        assert instruction >> 24 == 0xEB, f"expected ARM BL at {address:#x}"
+        displacement = instruction & 0xFFFFFF
+        if displacement & 0x800000:
+            displacement -= 0x1000000
+        return address + 8 + displacement * 4
+
     local_table = word(provisional(0x4590ED7C))
     get_request_record = local_table + 8
     get_request_name = word(get_request_record)
@@ -57,12 +65,7 @@ def main() -> None:
     prep_handler = word(group76_table + 6 * 4)
     assert prep_handler == provisional(0x45809AA0)
     prep_call = provisional(0x45809AA8)
-    branch = word(prep_call)
-    assert branch >> 24 == 0xEB
-    displacement = branch & 0xFFFFFF
-    if displacement & 0x800000:
-        displacement -= 0x1000000
-    prep_function = prep_call + 8 + displacement * 4
+    prep_function = branch_target(prep_call)
     assert prep_function == provisional(0x45808B2C)
     rom_handler = word(group76_table + 8 * 4)
     assert rom_handler == provisional(0x45809AB8)
@@ -80,6 +83,20 @@ def main() -> None:
     runtime_callback_table = word(provisional(0x457E8A70))
     assert runtime_callback_table == 0x43EAE878
 
+    group77_table = provisional(0x45777814)
+    group77_targets = [word(group77_table + i * 4) for i in range(6)]
+    assert group77_targets == [
+        provisional(0x45777874), provisional(0x4577782C),
+        provisional(0x45777834), provisional(0x45777844),
+        provisional(0x45777864), provisional(0x45777854),
+    ]
+    group77_source = branch_target(group77_targets[3])
+    group77_receiver = branch_target(group77_targets[5])
+    assert group77_source == provisional(0x45777638)
+    assert group77_receiver == provisional(0x45777488)
+    group77_sender = word(0x45ADA4D4)
+    assert group77_sender == provisional(0x45776E44)
+
     print(f"EpsonLocalReq:GetRequestID -> parser {get_request_callback:#x}")
     print(f"GET /FIRMWAREUPDATE -> event 0x76/6 -> prep handler {prep_handler:#x} "
           f"-> state function {prep_function:#x}")
@@ -88,6 +105,8 @@ def main() -> None:
     print(f"ROM request reply callback {rom_reply:#x}: static ChID 1, nonzero request ID for 200")
     print(f"ROM1 branch 0xb -> event 5/3 -> handler {group5_handler:#x}")
     print(f"branch 0xb callback IDs: 0x11, 0x12; runtime table {runtime_callback_table:#x}")
+    print(f"group 0x77/3 sender {group77_sender:#x} -> source event {group77_source:#x}")
+    print(f"group 0x77/5 -> package receiver {group77_receiver:#x}")
     print("Static chain only: live acceptance, streamed body callback, and signature gate are unproved")
 
 
