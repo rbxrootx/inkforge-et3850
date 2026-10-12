@@ -27,6 +27,8 @@ The additional `0x0b` dispatch finding gives another reason not to treat the `Se
 
 The [isolated ARM emulation](../scripts/emulate_setup_gate.py) runs the actual `0x4591465c` instructions from the hash-checked controller segment. It stops before the internal request call. An `IPPRes:200` prefix and 31 base64 characters both return before that call; 32 base64 characters reach it. This verifies the input gate, but it does not emulate the controller OS or prove any network entry point.
 
+A separate ARM routine at `0x458089a4` compares a supplied name with inline `ROM1` and `ROM2` strings, checks controller state, and queues an event for either name. Its direct call at `0x45809ac8` sits in a larger group `0x76` dispatcher. The recovered 14-entry jump table at `0x45809a18` does not point to that call block, and no direct ARM branch or exact pointer to the block was found in this segment. This prevents treating that routine as the live `/DOWN/FIRMWAREUPDATE/ROM1` handler. The `CancelDOWNCONTENT` routine at `0x45898d4c` builds an `EpsonLocalReq:` request through the same internal-request function used by `SetupData:`; it does not show how a network upload is validated.
+
 ## `ReadSetup` and `WriteSetup` strings
 
 A controller property metadata entry at segment-0 file offset `0x47a854` names `ReadSetup` and has ID `0x1443`. `WriteSetup` is also present as a string, but its exact address has no direct 32-bit pointer in this image. Neither observation identifies a network endpoint or a caller that accepts an arbitrary restore archive. The Linux-side [setup restore parser](setup-restore-parser.md) therefore remains a static file-write lead with no proved LAN source.
