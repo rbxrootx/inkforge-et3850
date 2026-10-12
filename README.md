@@ -14,6 +14,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Mapped printer-side firmware update GET and POST route-table entries on ports 80 and 443. Under a protection flag, port 80 rejects these routes and HTTPS requires Basic administrator credentials. The POST path crosses the D4 controller-facing IPC channel; its controller handler and signature gate remain unidentified. One zero-byte live POST returned HTTP 500 and was followed by a brief loss of network status, then recovery; no payload was sent. See [the network update route trace](research/network-update-route-trace.md).
 - Traced a second boot-image key copy descriptor and the P-256 verification decision. The `EPSONSIGN` parser reads a runtime copy of the same public key embedded in both RCX releases. What authenticates the boot image itself remains unresolved. See [the updater signature trace](research/updater-signature.md).
 - Rebuilt the second SquashFS with the patched `nwsoc`, placed it inside a same-length offline RCX, and made both IPL key copies and the outer signature internally consistent with an ephemeral key. Re-extraction recovered the patched executable byte-for-byte. A check against the existing XB22Q5 IPL key **rejects** this self-signed candidate. It has not been sent to the printer. See [the custom firmware status](research/custom-firmware-status.md).
+- Built a second offline candidate combining the patched executable with a suspend script that keeps the USB Wi-Fi device awake. Both files re-extract from its RCX with the expected hashes, and the combined image fits the original SquashFS slot. The current IPL key rejects it; no upload or print has occurred.
 - Confirmed the live printer advertises JPEG printing over IPPS. A cake page generator and explicit-send IPPS client are ready for the final print, after a custom change is installed and verified. The IPPS client was exercised in read-only mode only.
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
 - Traced a possible ENPC hostname-to-DHCP shell path. The authenticated network configuration session and same-value write work on the live printer. The configuration-scope transition and command execution remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
@@ -74,6 +75,7 @@ python scripts/patch_candidate.py --input path/to/nwsoc --output path/to/nwsoc.p
 python scripts/patch_suspend_candidate.py --input path/to/wlan_enable_suspend.sh --output path/to/wlan_enable_suspend.sh.patched
 python scripts/patch_wifi_power_all.py --input path/to/nwsoc --output path/to/nwsoc.wifi-power-all
 scripts/repack_wifi_candidate.sh path/to/squashfs_1.img path/to/nwsoc.wifi-power-all path/to/repacked.img
+scripts/repack_wifi_candidate.sh path/to/squashfs_1.img path/to/nwsoc.wifi-power-all path/to/repacked-combined.img path/to/wlan_enable_suspend.sh.patched
 python scripts/build_self_signed_control.py --input path/to/FWCJ61TL.rcx --squashfs path/to/repacked.img --output path/to/offline-control.rcx
 ```
 
