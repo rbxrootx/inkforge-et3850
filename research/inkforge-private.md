@@ -1,6 +1,6 @@
 # InkForge ET-3850: private owner workbench
 
-This is the local build and control workflow for the one ET-3850 on which a custom image and root shell were verified. This repository has no remote. Keep it private while the firmware acceptance issue is prepared for vendor disclosure.
+This is the local build and control workflow for the one ET-3850 on which a custom image and root shell were verified. The code is hosted in a private GitHub repository. Keep it private while the firmware acceptance issue is prepared for vendor disclosure.
 
 ## Launch the UI
 

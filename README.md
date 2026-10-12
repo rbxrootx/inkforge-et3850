@@ -1,6 +1,6 @@
 # Epson ET-3850 firmware research
 
-Private owner research and modding workbench for the ET-3850. This local Git repository has no remote. It contains build and install code but no Epson firmware, device credentials, or flashable image. Keep the installation path private while the updater finding is prepared for disclosure.
+Private owner research and modding workbench for the ET-3850. This repository is hosted in a private GitHub repository. It contains build and install code but no Epson firmware, device credentials, or flashable image. Keep the installation path private while the updater finding is prepared for disclosure.
 
 **InkForge private mod:** Run `python et3850_mod.py gui` for a retro UI with a complete offline firmware build, checked USB installer, and root command deck. The pinned stock RCX and generated password stay in local `work/`. See [the current workflow](research/inkforge-private.md). The public [companion repo](https://github.com/rbxrootx/et3850-mod-lab) does not contain the installer or bypass.
 
@@ -10,7 +10,7 @@ Private owner research and modding workbench for the ET-3850. This local Git rep
 
 Run `python et3850_mod.py` from this directory to open the retro graphical client. It has live Windows USB and print-queue discovery, an ET-3850 USBPRINT D4 version/status query, offline RCX inspection, a hash-locked Wi-Fi/Telnet candidate builder, an explicit-address SSH/Telnet reachability check, and LCD theme previews. `Pillow` is needed for the preview and `cryptography` for embedded-key signature verification; the USB transport itself uses the Python standard library. The client is our code and does not execute Epson's updater.
 
-The builder uses files in local `work/`: the pinned XB22Q5 RCX and rebuilt first and second SquashFS images. Its output also stays in `work/`, outside this public research repository. The default GUI paths match this investigation's local layout. The command-line forms are:
+The builder uses files in local `work/`: the pinned XB22Q5 RCX and rebuilt first and second SquashFS images. Its output also stays in `work/`, outside this Git repository. The default GUI paths match this investigation's local layout. The command-line forms are:
 
 ```powershell
 python et3850_mod.py status
@@ -121,6 +121,6 @@ The suspend-script candidate keeps USB `power/control` at `on` and blocks Realte
 
 ## Reporting
 
-The [vulnerability notes](research/vulnerabilities.md) distinguish known Epson advisories from research leads. This repository currently contains **no new confirmed live-device vulnerability** and no submission to Epson. The offline controller length bypass is documented for vendor triage; a device-specific impact and reachable input path are still unproved.
+The [vulnerability notes](research/vulnerabilities.md) distinguish known Epson advisories from research leads. A custom image was installed on the owner's physical ET-3850, establishing live impact for the firmware acceptance issue, while the exact decision path remains unobserved. No submission to Epson has been sent. The private controller length-bypass analysis is ready for vendor triage.
 
 The [disclosure template](research/disclosure-template.md) is ready if a new finding is confirmed.
