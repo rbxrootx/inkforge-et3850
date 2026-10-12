@@ -13,6 +13,11 @@ static const unsigned char main_version_reply[] =
     "Status:00000000\x1b\r\nMainVersion:1.0.0\x1b\r\n";
 static const unsigned char main_year_reply[] =
     "Status:00000000\x1b\r\nMainYearInfo:2025\x1b\r\n";
+#ifdef MOCK_GET_REQUEST_ID
+/* Deliberately invented response for offline body-path control-flow research. */
+static const unsigned char get_request_id_reply[] =
+    "HR:200\x1b\r\nRequestID:0\x1b\r\nChID:1\x1b\r\n";
+#endif
 static const unsigned char *active_reply = channel_info_reply;
 static u32 active_reply_length = sizeof(channel_info_reply) - 1;
 
@@ -85,6 +90,11 @@ int ioctl(int fd, unsigned long request, void *arg) {
             } else if (contains_bytes(sent, packet[1], "GetMainYearInfo", 15)) {
                 active_reply = main_year_reply;
                 active_reply_length = sizeof(main_year_reply) - 1;
+#ifdef MOCK_GET_REQUEST_ID
+            } else if (contains_bytes(sent, packet[1], "GetRequestID", 12)) {
+                active_reply = get_request_id_reply;
+                active_reply_length = sizeof(get_request_id_reply) - 1;
+#endif
             }
             channel_info_stage = 1;
         }

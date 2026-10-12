@@ -32,6 +32,8 @@ The [isolated QEMU WebApp run](application-rehost.md) now confirms a narrower dy
 
 The mock's D4 send log shows that each generic callback first sends `EpsonLocalReq:GetRequestID` with `Method:POST`, the **full** original `URI:`, and `IFIndex:1`. The longer `/DOWN/FIRMWAREUPDATE/ROM1` URI reaches this internal request intact. The current mock does not implement `GetRequestID`, so no valid controller response, body-stream approval, or signature decision was observed.
 
+An optional offline mock response of invented `HR:200`, `RequestID:0`, and `ChID:1` advanced the empty POSTs into `EPSON-NW-DOWNCONTENT1`; the next D4 command failed and HTTP returned 500. This supports a two-stage Linux-to-controller flow. It is not evidence of a real printer accepting those values or any firmware body.
+
 The trace identifies the D4 controller-facing IPC boundary, but not the controller handler for the firmware POST, its payload handling, or where signature verification occurs. The signed RCX test shows that a payload edit invalidates its existing ECDSA signature. A route-table entry and relay path therefore do not establish a way to install modified firmware.
 
 ## One live empty-request observation
