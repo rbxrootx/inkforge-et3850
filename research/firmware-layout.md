@@ -16,7 +16,7 @@ The extracted boot path is:
 
 This is a possible location for a persistent modification **if** a network write path can be established. The hook is not itself a remote write mechanism. The writable partition size and recovery behavior have not been measured.
 
-The `nwsoc` binary contains an `insmod` command for `8723du.ko` with `rtw_power_mgnt=1 rtw_enusbss=1`. The candidate changes those two ASCII digits to `0`. It is byte-length preserving and SHA-guarded by the script in this repository, but it has not reached Wi-Fi initialization in emulation. The loader branches on a four-character USB product identifier: `d723` selects the 8723DU path, while `c820` selects an 8821CU path with the same power-management arguments. The live printer's USB product identifier has not been read, so the 8723DU candidate may target the wrong driver variant.
+The `nwsoc` binary contains five `insmod` command strings with `rtw_power_mgnt=1 rtw_enusbss=1`: one for `8723du.ko` and four for `8821cu.ko`. The current [Wi-Fi candidate](custom-firmware-status.md) changes those two digits to `0` in all five strings, preserving the executable's length. It has not reached the Realtek loader command in emulation. The loader branches on a four-character USB product identifier: `d723` selects the 8723DU path, while `c820` selects an 8821CU path. Only `8723du.ko` was found in the extracted package; the live printer's USB product identifier has not been read.
 
 The binary also invokes `/opt/nwsoc/wlan_enable_suspend.sh` and `/opt/nwsoc/wlan_disable_suspend.sh`. The enable script sets USB `power/control` to `auto` and clears the Realtek `auto_suspend_block` flag; the disable script sets `power/control` to `on` and sets that flag. Decompilation places one enable/disable pair in a USB/Bluetooth initialization routine that also invokes `bcmdl` and checks `rtk_btusb`. This may be a temporary startup transition rather than the source of sustained Wi-Fi power saving. A second SHA-guarded offline candidate changes the enable script to retain `power/control=on` and `auto_suspend_block=1`, but its value is especially uncertain. Neither candidate has been installed or tested against Wi-Fi behavior.
 
@@ -27,6 +27,7 @@ The binary also invokes `/opt/nwsoc/wlan_enable_suspend.sh` and `/opt/nwsoc/wlan
 | Official recovery EXE | `e12cb391e4473391115d6e4c5d8dc3c9bd1e3ca78727a5cbb79370947a50d731` |
 | Extracted RCX | `103c9514e57f143f2619abcd280bd4d0926abf5370e03d28753a334ae02cd675` |
 | Original `nwsoc` | `70728f452c5358c4ef04ec39354c4656c42fa6e662af675ce88d161f05949ac0` |
-| Candidate `nwsoc` | `5136c1deeeac519fe3dbcde7e094f7012768fa454e3954a9056313ab6a3a4652` |
+| Current five-command candidate `nwsoc` | `67a8da3124b49d1d63e8b0378ac59ec79405eab75a1a0eee3144bb1b7aacbbf2` |
+| Earlier 8723DU-only candidate `nwsoc` | `5136c1deeeac519fe3dbcde7e094f7012768fa454e3954a9056313ab6a3a4652` |
 | Original `wlan_enable_suspend.sh` | `dd63b11cade9a72a570e9fe28d680456b5dfed51530a34d25f28acd55e93322a` |
 | Candidate `wlan_enable_suspend.sh` | `cd69813b0b73f57582f021cb208a842900ecd47b07bda5b29e6d2f8fd032778e` |
