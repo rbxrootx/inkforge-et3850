@@ -26,6 +26,8 @@ The first `EPSON IPL` segment contains a second copy of the same 64-byte P-256 p
 
 The same boot image has an `EPSONSIGN` parser at code offset `0xA1B8`. It checks a signature header and copies a 64-byte signature; its caller at `0x25D2C` initializes a SHA-256 context after a recognized header. The initializer loads the eight standard SHA-256 initial words. OpenSSL ECDSA strings are also present in this image. The precise signature-verification call, rejection branch, and relationship to network updates have not been mapped yet. The image is a stronger lead for printer-side verification than the Windows updater's generic key table, but it does not establish that a self-signed RCX will be accepted or rejected.
 
+A second first-IPL copy descriptor at raw code offset `0x2EF4` is `(source=0x7010, destination=0x46308000, length=0x1000)`. The first 64 bytes at `0x7010` match both the IPL key at `0x13F000` and the RCX embedded key at `0xB122`. The `EPSONSIGN` parser's `memcpy` at `0xA1B8` reads 64 bytes from `0x46308000` into runtime address `0x863497D8`, next to its copied signature. This ties the parser's key source to the boot copy table, rather than to a newly discovered immutable key. [`check_ipl0_key_copy.py`](../scripts/check_ipl0_key_copy.py) reproduces the static comparison on a separately extracted raw IPL image and RCX; it succeeds against both the XB05O7 and XB22Q5 RCX files. The copy descriptor's execution and any earlier authentication by boot ROM remain unverified.
+
 ## Remaining installation questions
 
 1. Trace the HTTP type assignment and model feature selection to learn whether the ET-3850 ever uses the generic network POST path.

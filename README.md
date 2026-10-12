@@ -11,12 +11,15 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Built a second offline candidate that changes those arguments in all five 8723DU and 8821CU load commands. The script checks the exact source hash, command counts, output length, and changed-byte count. See [the custom firmware status](research/custom-firmware-status.md).
 - Found a boot hook in the extracted firmware: `/opt/nwsoc_data/ExtBoot`, executed before `nwsoc`. No verified network method to write this hook has been found.
 - Traced the updater's network POST selection and generic SHA-256/ECDSA P-256 verification code. The ET-3850 RCX signature verifies against an embedded public key, but the updater's compiled key table omits XB20 and its model-specific path is unresolved. A modified RCX is not currently installable. See [the updater signature trace](research/updater-signature.md).
-- Mapped printer-side firmware update GET and POST route-table entries on ports 80 and 443. Under a protection flag, port 80 rejects these routes and HTTPS requires Basic administrator credentials; actual upload handling remains untraced. See [the network update route trace](research/network-update-route-trace.md).
-- Found a documented Epson Device Admin **Load from PC** firmware workflow. Epson materials list the ET-3850 as Device Admin compatible, but the firmware feature and accepted format have not been checked on this unit. See [the Device Admin lead](research/device-admin-lead.md).
+- Mapped printer-side firmware update GET and POST route-table entries on ports 80 and 443. Under a protection flag, port 80 rejects these routes and HTTPS requires Basic administrator credentials. The POST path enters an internal transport channel; its peer and signature gate remain unidentified. See [the network update route trace](research/network-update-route-trace.md).
+- Traced a second boot-image key copy descriptor. The `EPSONSIGN` parser reads a runtime copy of the same public key embedded in both RCX releases. What authenticates the boot image itself remains unresolved. See [the updater signature trace](research/updater-signature.md).
+- Confirmed the live printer advertises JPEG printing over IPPS. A cake page generator and explicit-send IPPS client are ready for the final print, after a custom change is installed and verified. The IPPS client was exercised in read-only mode only.
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
 - Traced a possible ENPC hostname-to-DHCP shell path. The authenticated network configuration session and same-value write work on the live printer. The configuration-scope transition and command execution remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
 
 See [firmware layout](research/firmware-layout.md), [network surface](research/network-surface.md), [administrator API and URL inventory](research/admin-api-inventory.md), and [vulnerability notes](research/vulnerabilities.md).
+
+The Device Admin installer lead is recorded in [earlier notes](research/device-admin-lead.md) but is not the current route. Current work follows the firmware's own network transport and boot verification code.
 
 For a read-only ENPC UDP 3289 reachability check:
 
