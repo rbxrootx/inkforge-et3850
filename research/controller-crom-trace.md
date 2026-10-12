@@ -55,6 +55,16 @@ A separate ARM routine at `0x458089a4` compares a supplied name with inline `ROM
 
 A controller property metadata entry at segment-0 file offset `0x47a854` names `ReadSetup` and has ID `0x1443`. `WriteSetup` is also present as a string, but its exact address has no direct 32-bit pointer in this image. Neither observation identifies a network endpoint or a caller that accepts an arbitrary restore archive. The Linux-side [setup restore parser](setup-restore-parser.md) therefore remains a static file-write lead with no proved LAN source.
 
+## Controller-side `EPSONSIGN` gate
+
+Another path in this decoded controller segment processes an `EPSONSIGNXB20d` package. At `0x45778e40`, it checks the header family and payload length, copies the 64-byte signature from header offset `+0x20` into controller state, and copies a 64-byte public key from **RAM address `0x4fb26800`** into adjacent state. The first IPL's startup descriptor at raw offset `0x5628c` copies 4096 bytes from its own offset `0x13f000` to that same RAM address. The copied first 64 bytes have SHA-256 `895d41e09d140db0529123757cba7e9ea24aea1ea6864e54a1a5d565ee6b1cac`, matching the original RCX key. The [hash-checked key-source checker](../scripts/inspect_controller_signature_gate.py) reproduces the constants and copy relationship from separately extracted files.
+
+The parser is called by the streaming routine at `0x45778264`. That routine hashes the payload and, when all expected bytes have arrived, calls `0x45778f0c`, which passes the copied key, signature, and 32-byte digest to `0x45768cd4` / `0x45768d04`. The latter constructs an elliptic-curve key with curve ID `0x19f` and feeds the signature components and digest to its verification routine. The package reader at `0x45778404` uses this streaming routine. One caller at `0x45778a88` selects it for command `0xb10`; a separate receiver at `0x45777488` also selects it for modes `0xb` and `0x11`. The entry point or protocol that supplies these commands remains unidentified. There is no demonstrated link from the printer's HTTP `/DOWN/` relay to this controller package path.
+
+For this path, simply replacing the public key **inside the candidate RCX** cannot change the key already copied from the running IPL into `0x4fb26800`. The [existing offline signature check](../scripts/check_rcx_against_current_ipl.py) accepts the original XB22Q5 RCX against that IPL key and rejects the self-signed Wi-Fi candidate. This is a concrete rejection reason for this decoded controller path, not a proof that every possible update route uses it or that the live device has identical RAM state. No key-changing write path or alternative acceptance rule has been established.
+
+Reproduce the static key-source check with `python scripts/inspect_controller_signature_gate.py path/to/decoded-controller-0.bin path/to/ipl0-code.bin`. Neither input is distributed here.
+
 ## Next proof needed
 
 Find the producer of the `WRITESETUP` chunks consumed by Linux `nwsoc`, then trace that producer to an authenticated or unauthenticated LAN handler. A harmless chosen-filename write on the test printer would be needed before calling this a vulnerability. The controller CROM trace alone does not justify sending a modified firmware image.

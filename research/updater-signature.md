@@ -32,6 +32,8 @@ An offline control replaces both IPL copies of that public key with a fresh P-25
 
 The key loaded by the **running** XB22Q5 IPL is the original public key. [`check_rcx_against_current_ipl.py`](../scripts/check_rcx_against_current_ipl.py) confirms that it verifies the original RCX and rejects the self-signed Wi-Fi candidate. If the update route invokes the mapped verifier before replacing the running IPL, copying a new key into the candidate does not bypass that check. The live device's IPL bytes have not been dumped, and the exact route-to-verifier call remains to be proven.
 
+A separate [decoded controller package path](controller-crom-trace.md#controller-side-epsonsign-gate) reads the same original key through the **other** first-IPL startup copy: raw source `0x13f000` to RAM `0x4fb26800`. Its `EPSONSIGNXB20d` parser uses that RAM key for a P-256 signature check after hashing the incoming payload. This makes self-signing with a substituted key ineffective on that package path. It remains unknown whether the observed network HTTP relay invokes this controller routine.
+
 ## Remaining installation questions
 
 1. Trace the HTTP type assignment and model feature selection to learn whether the ET-3850 ever uses the generic network POST path.
