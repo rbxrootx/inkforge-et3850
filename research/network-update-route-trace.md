@@ -18,6 +18,8 @@ The update-preparation function at `0x16DE88` installs the transport callback at
 
 The trace does not yet identify the channel peer, its firmware payload handling, or where signature verification occurs. The signed RCX test shows that a payload edit invalidates its existing ECDSA signature. A route-table entry and relay path therefore do not establish a way to install modified firmware.
 
+The separately decoded [controller CROM image](controller-crom-trace.md) contains an internal request route that enqueues event `0x0b/0x42`. Its static event table sends `0x42` back to the wait loop in this image. This is a negative result for that specific internal request path, not proof that the Linux firmware-update POST has no other peer or that the live controller has identical runtime contents.
+
 The route names match a [2016 researcher advisory about a WF-2540](https://lists.openwall.net/bugtraq/2016/09/26/2), which used `GET /FIRMWAREUPDATE` followed by `POST /DOWN/FIRMWAREUPDATE/ROM1`. That advisory tested a different printer and predates this signed XB20 package. Its unsigned-firmware conclusion must not be transferred to the ET-3850.
 
 Next offline trace: identify the transport channel peer and firmware-specific body callback, then determine where the relayed bytes are authenticated. No new ET-3850 vulnerability or working network flash has been demonstrated.
