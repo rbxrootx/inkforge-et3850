@@ -49,6 +49,10 @@ def inspect(path: Path) -> None:
         raise ValueError("Image mapping anchor does not resolve")
 
     branches = {
+        0x43476778: 0x43476188,  # state dispatcher -> update command handler
+        0x43476208: 0x43476010,  # command handler -> working-memory setup
+        0x43444DB8: 0x435202D8,  # update dispatcher -> ROM programmer wrapper
+        0x43444E3C: 0x435202D8,  # alternate update case
         0x4352032C: 0x43448A5C,  # initialization -> ROM programmer
         0x43448D54: 0x434487B8,  # ROM programmer -> finished display
         0x43448CCC: 0x43448788,  # ROM programmer -> byte-sum checker
@@ -62,10 +66,19 @@ def inspect(path: Path) -> None:
         raise ValueError("Byte load changed in checksum loop")
     if word(image, 0x434487A4) != 0xE083300C:
         raise ValueError("Byte addition changed in checksum loop")
+    if word(image, 0x4347697C) != 0x43444BFC:
+        raise ValueError("Working-memory dispatcher source changed")
+    if word(image, 0x4346F780) != 0xE3A00003:
+        raise ValueError("Command-status helper no longer returns 3")
+    if word(image, 0x4346F78C) != 0xE3A00000:
+        raise ValueError("Command-mode helper no longer returns 0")
 
     print(f"Image SHA-256: {digest}")
     print(f"Mapped ARM base: {BASE:#x}")
     print("Update-mode ROM programmer: 0x43448a5c")
+    print("State/command chain: 0x434765f8 -> 0x43476188 -> 0x43476010")
+    print("Dispatcher copied to working memory from 0x43444bfc")
+    print("Local command gate helpers return constants 3 and 0")
     print("Post-program byte-sum routine: 0x43448788")
     print("Finished/status display: 0x434487b8")
     print("No network caller or signature bypass is established by these checks.")
