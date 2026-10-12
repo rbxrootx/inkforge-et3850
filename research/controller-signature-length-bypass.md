@@ -41,6 +41,8 @@ The first IPL itself writes that mode byte during early startup in `0xd58`. It s
 
 The corrected [controller CROM trace](controller-crom-trace.md) now maps the Linux first-stage `GetRequestID` request through ROM1 selection, a recovered RAM callback table, a channel-1 body read, and the package receiver that calls this signed reader. This is static code evidence and isolated emulation, not a captured live accepted transfer. The physical printer is accessible only over Wi-Fi and has no established recovery channel, so no 40 MB candidate upload has been attempted. The live controller reply and any earlier authentication gate still need resolution before claiming an install or device impact.
 
+The reader's success also has a mapped completion route: ROM1 status record `0xca4` becomes `1`, and the controller hands three staged-record descriptors to another component using commands `0x2a` and `0x2b`. The receiving code at `0x4370d47c`/`0x4370d588` is outside the decoded controller segment. Its validation and flash behavior remain unproved, so the reader's success cannot be equated with installation.
+
 ### Offline two-stage control
 
 The optional `--patch-ipl-finalizer` switch in [`build_length_gate_candidate.py`](../scripts/build_length_gate_candidate.py) changes one ARM instruction in the candidate's first IPL at raw code offset `0x97d0`: `BNE 0x97f4` becomes `BNE 0x97fc`. With a positive remaining count, this jumps past the first IPL's local error call. It leaves the running printer's IPL untouched. The builder recalculates the first record's sum and SHA-1 digest along with the Wi-Fi record's checks.

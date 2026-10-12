@@ -43,13 +43,17 @@ def main() -> None:
     def provisional(address: int) -> int:
         return address - SHIFT
 
-    def branch_target(address: int) -> int:
+    def jump_target(address: int) -> int:
         instruction = word(address)
-        assert instruction >> 24 == 0xEB, f"expected ARM BL at {address:#x}"
+        assert (instruction >> 25) & 7 == 5, f"expected ARM branch at {address:#x}"
         displacement = instruction & 0xFFFFFF
         if displacement & 0x800000:
             displacement -= 0x1000000
         return address + 8 + displacement * 4
+
+    def branch_target(address: int) -> int:
+        assert word(address) >> 24 == 0xEB, f"expected ARM BL at {address:#x}"
+        return jump_target(address)
 
     def has_bl(start: int, end: int, target: int) -> bool:
         return any(
@@ -120,6 +124,34 @@ def main() -> None:
     assert word(0x457DB944) == 0xE3A00001  # mov r0, #1 (D4 channel)
     assert branch_target(0x457DB948) == 0x4589CCF4
 
+    for allocator_call in (0x457289B0, 0x457289CC, 0x457289F8):
+        assert branch_target(allocator_call) == 0x458AC5F8
+    for size_instruction in (0x457289A4, 0x457289C0, 0x457289EC):
+        assert word(size_instruction) == 0xE3A02401  # mov r2, #0x1000000
+
+    # Completion after both ROM1 callbacks report done. The accepted package
+    # remains in three allocated 16 MiB staging buffers at this point.
+    assert branch_target(0x45776F84) == 0x4589E0D4  # ID 0x12 done -> event 5/5
+    assert branch_target(0x457DB7B4) == 0x4589E0D4  # ID 0x11 done -> event 5/5
+    group5_done = word(group5_table + 5 * 4)
+    assert group5_done == 0x4589E490
+    assert branch_target(0x4589E494) == 0x457E88D8
+    assert branch_target(0x457E8934) == 0x457E881C  # all callbacks done?
+    group76_done = word(group76_table + 5 * 4)
+    assert group76_done == 0x45809A04
+    assert branch_target(0x45809A0C) == 0x45809310
+    assert jump_target(0x458093A0) == 0x45808BD4  # ROM1 completion
+    assert word(0x45808BF8) == 0xE3000CA4  # movw r0, #0xca4 (success record)
+    assert branch_target(0x45808BFC) == 0x458AA2D0
+    assert branch_target(0x45808CFC) == 0x45728E18  # staging table
+    assert branch_target(0x45808D00) == 0x4590B088  # external handoff
+    assert branch_target(0x45808D08) == 0x458AAB00  # state event
+    assert word(0x4590B0A8) == 0xE3A02030  # copy 0x30 staging metadata bytes
+    assert branch_target(0x4590B0D0) == 0x456BEB84
+    assert branch_target(0x4590B0E4) == 0x456BEB8C
+    assert jump_target(0x456BEB84) == 0x4370D47C
+    assert jump_target(0x456BEB8C) == 0x4370D588
+
     copied_callback_objects = None
     if args.ipl0_code:
         ipl = args.ipl0_code.read_bytes()
@@ -152,10 +184,12 @@ def main() -> None:
     print(f"group 0x77/3 sender {group77_sender:#x} -> source event {group77_source:#x}")
     print(f"group 0x77/5 -> package receiver {group77_receiver:#x}")
     print(f"ROM1 request ID record 0x1132 -> source read {rom1_source_read:#x} -> D4 channel 1; end marker queues 0x77/5")
+    print(f"ROM1 reader result -> status record 0xca4 -> group 5/5 {group5_done:#x} -> group 0x76/5 {group76_done:#x}")
+    print("status 0xca4 == 1 -> staged-buffer metadata -> external commands 0x2a and 0x2b at 0x4370d47c/0x4370d588")
     if copied_callback_objects is not None:
         print(f"IPL copy -> RAM callback table: source {source:#x}, destination {destination:#x}, length {length:#x}")
         print(f"ROM branch callback 0x11 -> {callback_11:#x}; 0x12 -> {callback_12:#x} (group 0x77/3 sender)")
-    print("Static chain only: live body acceptance and any earlier IPL signature gate are unproved")
+    print("Static chain only: live body acceptance, external handoff validation, and flash commit are unproved")
 
 
 if __name__ == "__main__":
