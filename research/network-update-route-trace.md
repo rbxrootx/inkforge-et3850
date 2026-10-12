@@ -30,6 +30,8 @@ The same `0x16DE88` function loops over 57 initialized route records of stride `
 
 The [isolated QEMU WebApp run](application-rehost.md) now confirms a narrower dynamic fact: after shimming missing startup state, this service opened TCP/80 and TCP/443, executed `0x128DD8`, and returned 403 for `GET /FIRMWAREUPDATE`. Two empty POSTs to generic and specific update paths both received an invalid `HTTP/1.1 0 Unknown error` from the incompletely mocked internal peer. A filtered instruction trace resolved the callback in this emulated flow: both POSTs entered generic `0x1571F8`; neither specific callback was reached. This cannot prove which flow was active on the physical printer during its earlier empty POST, establish upload acceptance, or establish a vulnerability.
 
+The mock's D4 send log shows that each generic callback first sends `EpsonLocalReq:GetRequestID` with `Method:POST`, the **full** original `URI:`, and `IFIndex:1`. The longer `/DOWN/FIRMWAREUPDATE/ROM1` URI reaches this internal request intact. The current mock does not implement `GetRequestID`, so no valid controller response, body-stream approval, or signature decision was observed.
+
 The trace identifies the D4 controller-facing IPC boundary, but not the controller handler for the firmware POST, its payload handling, or where signature verification occurs. The signed RCX test shows that a payload edit invalidates its existing ECDSA signature. A route-table entry and relay path therefore do not establish a way to install modified firmware.
 
 ## One live empty-request observation

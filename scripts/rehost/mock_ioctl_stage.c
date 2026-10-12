@@ -45,7 +45,7 @@ static void trace_send_bytes(int fd, u32 *packet) {
     const unsigned char *source;
     if (fd < 0 || fd >= 64 || channel_by_fd[fd] != 10 || packet[1] > 256 || lines++ >= 24) return;
     source = (const unsigned char *)packet[0];
-    count = packet[1] < 48 ? packet[1] : 48;
+    count = packet[1] < 128 ? packet[1] : 128;
     used = snprintf(line, sizeof(line), "MOCK SENDHEX fd=%d len=%u data=", fd, packet[1]);
     for (unsigned int i = 0; i < count && used > 0 && used + 4 < (int)sizeof(line); ++i)
         used += snprintf(line + used, sizeof(line) - used, "%02x", source[i]);
