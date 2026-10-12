@@ -1,6 +1,8 @@
 # Epson ET-3850 firmware research
 
-Research into the ET-3850 network firmware and a possible Wi-Fi power-management modification. This repository contains original analysis and tools only. It does not distribute Epson firmware, device credentials, or a flashable image.
+Private owner research and modding workbench for the ET-3850. This local Git repository has no remote. It contains build and install code but no Epson firmware, device credentials, or flashable image. Keep the installation path private while the updater finding is prepared for disclosure.
+
+**InkForge private mod:** Run `python et3850_mod.py gui` for a retro UI with a complete offline firmware build, checked USB installer, and root command deck. The pinned stock RCX and generated password stay in local `work/`. See [the current workflow](research/inkforge-private.md). The public [companion repo](https://github.com/rbxrootx/et3850-mod-lab) does not contain the installer or bypass.
 
 **Live result (2026-10-12):** A custom image ran on the owner's physical ET-3850. A private TCP 2323 login returned `uid=0(root)`; the running network executable matched our patched digest; and the Realtek driver reported `rtw_power_mgnt=0` and `rtw_enusbss=0`. The Python USB sender and companion shell client work. The package was **not** signed with Epson's private key. The exact live acceptance path, long-term Wi-Fi benefit, SSH, and personal-photo home wallpaper remain unresolved. See [live install verification](research/live-custom-install.md). Older sections below preserve the investigation as it developed and may describe earlier candidate states.
 
@@ -19,7 +21,7 @@ python et3850_mod.py flash ..\..\work\telnet_wifi_photo_candidate.rcx
 python et3850_mod.py services PRINTER_IP
 ```
 
-The `flash` command shown above is preflight only unless `--send` is supplied. The corrected USBPRINT sender transferred the complete signed stock image, received `fl:03:OK` at update-end, and the printer returned to its home screen with the original version still reported. It subsequently transferred the complete Wi-Fi/Telnet candidate and received the same transport acknowledgement. Device-side acceptance and post-transfer state of the custom image remain to be checked. WinUSB accepts control commands but rejected the DATA socket before receiving image bytes. The custom image fails normal signature verification; its isolated length-gate bypass has not been demonstrated on the device. Telnet has not been verified. The photo was placed in a blue-wave resource, but the owner reports a white home screen with blue tiles and only solid-color wallpaper choices, so that resource is not the observed active home background. See [USB route](research/usb-update-route.md), [photo wallpaper](research/photo-wallpaper.md), and [Telnet unlock path](research/telnet-unlock.md).
+The `flash` command shown above is preflight only unless `--send` is supplied. The corrected USBPRINT sender transferred both signed stock and a custom image and received `fl:03:OK`. The custom image was verified running on this printer by its startup marker, password-gated root shell, executable digest, and Wi-Fi driver parameters. WinUSB accepts control commands but rejected the DATA socket before receiving image bytes. Normal signature verification rejects the custom image, and the exact live controller decision path has not been observed. The photo was placed in a blue-wave resource, but the owner reports a white home screen with blue tiles and only solid-color wallpaper choices, so that resource is not the observed active home background. See [USB route](research/usb-update-route.md), [photo wallpaper](research/photo-wallpaper.md), and [Telnet unlock path](research/telnet-unlock.md).
 
 ## Current state
 

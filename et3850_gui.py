@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 import queue
+import subprocess
+import sys
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -27,7 +30,7 @@ FONT = "Consolas"
 class App:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("ET-3850 // JAILBREAK WORKBENCH")
+        self.root.title("INKFORGE // ET-3850")
         self.root.configure(bg=BG)
         self.root.geometry("1130x760")
         self.root.minsize(960, 650)
@@ -35,9 +38,12 @@ class App:
         self.source = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "FWCJ61TL.rcx"))
         self.squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet4_squashfs_1.img"))
         self.first_squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet2_squashfs_0.img"))
-        self.destination = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet4_wifi_auth_candidate.rcx"))
+        fresh_name = "inkforge_et3850_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".rcx"
+        self.destination = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / fresh_name))
         self.flash_image = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet4_wifi_auth_candidate.rcx"))
         self.host = tk.StringVar(value="192.168.0.12")
+        self.password_file = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_password.txt"))
+        self.root_command = tk.StringVar(value="id")
         self.append_byte = tk.BooleanVar(value=True)
         self.patch_ipl = tk.BooleanVar(value=True)
         self.busy = False
@@ -158,9 +164,10 @@ class App:
         self._button(row, "...", choose)
 
     def _page_patch_lab(self):
-        self._title("PATCH LAB", "Build and inspect the Wi-Fi power candidate entirely offline. Firmware files stay in local scratch space.")
+        self._title("PATCH LAB", "Build from your pinned stock RCX. The full build creates a private password, patches both filesystems, and writes a checked image plus manifest.")
         card = self._card(title="INPUT / OUTPUT")
         self._file_row(card, "PINNED XB22Q5 SOURCE RCX", self.source)
+        self._file_row(card, "PRIVATE PASSWORD FILE", self.password_file, save=True)
         self._file_row(card, "REBUILT ROOT / LOGIN SQUASHFS", self.first_squashfs)
         self._file_row(card, "REBUILT Wi-Fi / TELNET SQUASHFS", self.squashfs)
         self._file_row(card, "CANDIDATE RCX OUTPUT", self.destination, save=True)
@@ -175,12 +182,13 @@ class App:
         row.pack(anchor="w")
         self._button(row, "INSPECT SOURCE", lambda: self.inspect_path(self.source.get()))
         self._button(row, "INSPECT CANDIDATE", lambda: self.inspect_path(self.destination.get()))
+        self._button(row, "BUILD FULL MOD", self.build_full_mod, LIME)
         self._button(row, "BUILD OFFLINE PATCH", self.build_patch, PINK)
         card = self._card(title="REPORT")
         self.patch_report = tk.Text(card, height=13, bg="#080e22", fg=LIME, insertbackground=CYAN,
                                     relief="flat", font=(FONT, 10), wrap="word", padx=12, pady=10)
         self.patch_report.pack(fill="both", expand=True)
-        self.patch_report.insert("end", "Select an RCX to inspect, or build from the pinned source and rebuilt SquashFS.\n\nNo image is sent to the printer.")
+        self.patch_report.insert("end", "BUILD FULL MOD creates both patched filesystems and a private login from the pinned source.\n\nBUILD OFFLINE PATCH uses prebuilt filesystems. Neither action contacts the printer.")
 
     def _page_flash_path(self):
         self._title("FLASH PATH", "The custom image installed: its startup marker and patched Wi-Fi settings were observed live.")
@@ -197,7 +205,7 @@ class App:
             self._line(card, f"{label:<35} {state}", LIME if state == "OBSERVED" else PINK)
         card = self._card(title="CHECKED USB INSTALLER")
         self._file_row(card, "HASH-LOCKED RCX TO PREFLIGHT OR SEND", self.flash_image)
-        self._line(card, "Pinned stock, Wi-Fi/Telnet, and photo-wallpaper candidate hashes pass preflight.", LIME)
+        self._line(card, "Pinned images or a fresh InkForge image with a matching local manifest pass preflight.", LIME)
         self._line(card, "The custom image fails normal signature verification. A device rejection or failed boot is possible.", PINK)
         self._line(card, "The photo replaces a blue-wave asset; the owner reports a white home screen, so its display target is unverified.", PINK)
         row = tk.Frame(card, bg=PANEL)
@@ -209,7 +217,7 @@ class App:
                  font=(FONT, 10), justify="left", wraplength=750).pack(anchor="w", pady=(12, 0))
 
     def _page_shell(self):
-        self._title("SHELL ACCESS", "Check SSH, stock Telnet, and the installed ET3850MOD root shell.")
+        self._title("ROOT CONSOLE", "Run commands as root on your installed ET3850MOD printer and inspect its Linux internals.")
         card = self._card(title="CONNECTIVITY")
         self._line(card, "PRINTER IP OR HOSTNAME", MUTED)
         entry = tk.Entry(card, textvariable=self.host, bg="#080e22", fg=TEXT,
@@ -219,14 +227,31 @@ class App:
         row.pack(anchor="w")
         self._button(row, "CHECK TCP 22 / 23 / 2323", self.probe_services)
         self._button(row, "VERIFY ROOT WITH ID", self.verify_root, PINK)
+        self._button(row, "INTERACTIVE TERMINAL", self.open_terminal, LIME)
         self.service_result = tk.StringVar(value="No address probed.")
         tk.Label(card, textvariable=self.service_result, bg=PANEL, fg=LIME,
                  font=(FONT, 11), justify="left").pack(anchor="w", pady=(12, 0))
-        card = self._card(title="LINUX / LOGIN REALITY")
-        self._line(card, "The ET-3850 firmware already runs Linux. Replacing the whole OS would require boot support, hardware drivers, and a recoverable flash route.")
-        self._line(card, "Our custom startup script launches a password-gated root shell on port 2323. Its private password is stored outside this repository.")
-        self._line(card, "The live shell returned uid=0(root), and the Wi-Fi driver reports both power-management parameters as 0.", LIME)
-        self._line(card, "Stock SSH has not been observed. Use the command-line shell subcommand for an interactive session.")
+        card = self._card(title="PRIVATE LOGIN")
+        self._file_row(card, "PASSWORD FILE", self.password_file)
+        card = self._card(title="COMMAND DECK")
+        self._line(card, "Root command (runs on the printer)", MUTED)
+        tk.Entry(card, textvariable=self.root_command, bg="#080e22", fg=TEXT,
+                 insertbackground=CYAN, relief="flat", font=(FONT, 11)).pack(fill="x", ipady=8)
+        row = tk.Frame(card, bg=PANEL)
+        row.pack(anchor="w", pady=8)
+        self._button(row, "RUN AS ROOT", self.run_root_command, LIME)
+        self._button(row, "FILES", lambda: self._preset("pwd; ls -la /opt/nwsoc; df -h"))
+        self._button(row, "PROCESSES", lambda: self._preset("ps"))
+        row = tk.Frame(card, bg=PANEL)
+        row.pack(anchor="w")
+        self._button(row, "WIFI", lambda: self._preset("cat /sys/module/8723du/parameters/rtw_power_mgnt; cat /sys/module/8723du/parameters/rtw_enusbss; ifconfig wlan0"))
+        self._button(row, "BOOT LOG", lambda: self._preset("dmesg | tail -n 80"))
+        self._button(row, "FIRMWARE", lambda: self._preset("uname -a; cat /proc/mtd; mount; md5sum /opt/nwsoc/nwsoc"))
+        self.root_result = tk.Text(card, height=11, bg="#080e22", fg=LIME,
+                                   insertbackground=CYAN, relief="flat", font=(FONT, 10),
+                                   wrap="word", padx=12, pady=10)
+        self.root_result.pack(fill="both", expand=True, pady=(12, 0))
+        self.root_result.insert("end", "Root session ready. Commands run over the private port 2323 login.\n")
 
     def _page_lcd_theme(self):
         self._title("LCD THEME", "The owner's photo was rebuilt into an offline 320×240 UI image. Device display is unverified.")
@@ -326,20 +351,24 @@ class App:
     def preflight_flash(self):
         from usb_update import transfer
         path = Path(self.flash_image.get())
+        manifest = path.with_suffix(path.suffix + ".manifest.json")
         def done(result):
             self._log("Firmware transfer preflight completed")
             if self.view_name == "FLASH PATH":
                 self.flash_result.set(json.dumps(result, indent=2))
-        self._run_background("Checking exact firmware hash and records", lambda: transfer(path), done)
+        self._run_background("Checking exact firmware hash and records", lambda: transfer(path, manifest=manifest if manifest.exists() else None), done)
 
     def send_flash(self):
         from usb_update import transfer
         path = Path(self.flash_image.get())
+        manifest = path.with_suffix(path.suffix + ".manifest.json")
+        if not messagebox.askyesno("Send firmware to ET-3850", "This will enter firmware update mode and stream the selected image over USB. The printer may reboot. Send now?"):
+            return
         def done(result):
             self._log("USB transfer ended; verify printer boot and services")
             if self.view_name == "FLASH PATH":
                 self.flash_result.set(json.dumps(result, indent=2))
-        self._run_background("Sending checked firmware over USB D4", lambda: transfer(path, True), done)
+        self._run_background("Sending checked firmware over USB D4", lambda: transfer(path, True, manifest=manifest if manifest.exists() else None), done)
 
     def inspect_path(self, path):
         if not path:
@@ -361,6 +390,23 @@ class App:
                 self.patch_report.insert("end", result["stdout"] + result["stderr"])
         self._run_background("Building candidate in local scratch", lambda: core.build_candidate(*args), done)
 
+    def build_full_mod(self):
+        from inkforge import build
+        source = Path(self.source.get())
+        output = Path(self.destination.get())
+        password = Path(self.password_file.get())
+        def task():
+            notes = []
+            result = build(source, output, password, notes.append)
+            return {"build": result, "steps": notes}
+        def done(result):
+            self.flash_image.set(result["build"]["image"])
+            self._log("Private mod image and manifest built offline")
+            if self.view_name == "PATCH LAB":
+                self.patch_report.delete("1.0", "end")
+                self.patch_report.insert("end", json.dumps(result, indent=2))
+        self._run_background("Building full InkForge mod", task, done)
+
     def probe_services(self):
         host = self.host.get().strip()
         if not host:
@@ -378,12 +424,46 @@ class App:
             messagebox.showinfo("Printer address needed", "Enter the printer IP address or hostname.")
             return
         from mod_shell import connect
-        password_file = core.ROOT.parent.parent / "work" / "telnet_password.txt"
+        password_file = Path(self.password_file.get())
         def done(result):
             self._log(f"Root shell ID query completed for {host}")
             if self.view_name == "SHELL":
                 self.service_result.set(result["output"])
         self._run_background("Authenticating to ET3850MOD", lambda: connect(host, password_file, "id"), done)
+
+    def _preset(self, command: str):
+        self.root_command.set(command)
+        self.run_root_command()
+
+    def run_root_command(self):
+        from mod_shell import connect
+        host = self.host.get().strip()
+        command = self.root_command.get().strip()
+        password = Path(self.password_file.get())
+        if not host or not command:
+            messagebox.showinfo("Root console", "Enter a printer address and command.")
+            return
+        def done(result):
+            self._log(f"Root command completed on {host}")
+            if self.view_name == "SHELL":
+                self.root_result.delete("1.0", "end")
+                self.root_result.insert("end", result["output"])
+        self._run_background("Running root command", lambda: connect(host, password, command), done)
+
+    def open_terminal(self):
+        host = self.host.get().strip()
+        password = Path(self.password_file.get())
+        if not host or not password.is_file():
+            messagebox.showinfo("Interactive terminal", "Enter the printer address and choose a private password file.")
+            return
+        python = Path(sys.executable)
+        if python.name.lower() == "pythonw.exe":
+            python = python.with_name("python.exe")
+        flags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+        subprocess.Popen([str(python), str(core.ROOT / "et3850_mod.py"), "shell", host,
+                          "--password-file", str(password)], cwd=core.ROOT,
+                         creationflags=flags)
+        self._log(f"Interactive root terminal opened for {host}")
 
 
 def run():

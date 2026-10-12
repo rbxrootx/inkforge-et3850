@@ -26,13 +26,25 @@ HEADER_BYTES = 0x112
 DATA_PAYLOAD_BYTES = 32762  # observed DATA MTU 32768 minus the six-byte D4 header
 
 
-def preflight(path: Path) -> tuple[dict, bytes]:
+def preflight(path: Path, manifest: Path | None = None) -> tuple[dict, bytes]:
     path = path.resolve()
     data = path.read_bytes()
     report = inspect_firmware(path)
     digest = report["sha256"]
-    if digest not in (SOURCE_SHA256, CUSTOM_SHA256, TELNET2_SHA256, BEACON_SHA256, AUTH_SHA256, PHOTO_SHA256):
-        raise ValueError("RCX is not a pinned XB22Q5 source or checked Wi-Fi/Telnet candidate")
+    pinned = digest in (SOURCE_SHA256, CUSTOM_SHA256, TELNET2_SHA256,
+                        BEACON_SHA256, AUTH_SHA256, PHOTO_SHA256)
+    built = False
+    if manifest is not None:
+        evidence = json.loads(manifest.read_text(encoding="utf-8"))
+        built = (evidence.get("schema") == "inkforge-et3850-v1" and
+                 evidence.get("model") == "ET-3850" and
+                 evidence.get("firmware") == "XB22Q5" and
+                 evidence.get("source_sha256") == SOURCE_SHA256 and
+                 evidence.get("image_sha256") == digest and
+                 evidence.get("image_bytes") == len(data) and
+                 evidence.get("signature_status") == "invalid for embedded key")
+    if not pinned and not built:
+        raise ValueError("RCX is neither a pinned image nor an InkForge build matching its manifest")
     if data[HEADER_BYTES:HEADER_BYTES + 14] != b"EPSONSIGNXB20d":
         raise ValueError("unexpected RCX binary envelope")
     text = data[:HEADER_BYTES].decode("ascii")
@@ -59,7 +71,8 @@ def preflight(path: Path) -> tuple[dict, bytes]:
     return {"image": str(path), "sha256": digest, "kind": kind,
             "rcx_bytes": len(data), "transfer_bytes": len(data) - HEADER_BYTES,
             "records_verified": 3, "signature": report["embedded_signature"],
-            "device_acceptance": "unverified"}, data[HEADER_BYTES:]
+            "device_acceptance": "verified only for the installed research candidate",
+            "inkforge_manifest": str(manifest) if built else None}, data[HEADER_BYTES:]
 
 
 def reply_text(reply: bytes, prefix: bytes) -> str:
@@ -68,8 +81,9 @@ def reply_text(reply: bytes, prefix: bytes) -> str:
     return reply.decode("ascii", "replace")
 
 
-def transfer(path: Path, send: bool = False, transport: str = "usbprint") -> dict:
-    report, blob = preflight(path)
+def transfer(path: Path, send: bool = False, transport: str = "usbprint",
+             manifest: Path | None = None) -> dict:
+    report, blob = preflight(path, manifest)
     if not send:
         return report | {"action": "preflight only; no printer contact"}
     for queue in printer_queues():
@@ -85,7 +99,7 @@ def transfer(path: Path, send: bool = False, transport: str = "usbprint") -> dic
         if "XB22Q5" not in version:
             raise IOError("device firmware is not the pinned XB22Q5 build")
         if report["kind"] != "stock":
-            print("Custom-image signature is invalid under normal verification; the isolated length-gate bypass is unproven on this device", flush=True)
+            print("Custom-image signature is invalid under normal verification; fresh builds have not been device-tested", flush=True)
         fl = reply_text(d4.call(sid, b"fl", b"\x01"), b"fl:")
         print(f"FL: {fl.strip()}", flush=True)
         gm = reply_text(d4.call(sid, b"gm", b"\x01"), b"fl:01:")
