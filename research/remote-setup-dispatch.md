@@ -15,6 +15,8 @@ the fourth must complement it, and a one-bit rotation of the fifth must equal
 it. The same handler has a state gate: when its third call argument is `4`, a
 controller state word at `0x43edb930` must be `1`. The value of that word on the
 live device and the exact meaning of the argument have not been established.
+The generic two-letter router at `0x459ae940` passes this argument from an
+event field at offset `+0x12`; the source of that field is still being traced.
 
 The inner table has `p` at `0x45b7c408` (handler `0x459b14e8`) and `q` at
 `0x45b7c410` (handler `0x459b1678`). The `p` handler expects a seven-byte inner
@@ -48,14 +50,16 @@ a little-endian body length, and body bytes. It sent three cases:
 | Unknown `zz`, invalid `J6` | `00 7a 7a 3a 3b 0c` | Generic `zz:;` reply. |
 | `||`, invalid `J6` checksum | `00 7c 7c 3a 30 30 3a 4e 41 3b 0c` | Command-specific `||:00:NA;` rejection. |
 | `||`, valid `J6` with `p` type `2` and zero data bytes | `00 7c 7c 3a 37 30 3a 4e 41 3b 0c` | `||:70:NA;` rejection. No bytes were supplied for copying. |
+| `||`, valid `J6` with `q` type `2` and zero data bytes | `00 7c 7c 3a 37 31 3a 4e 41 3b 0c` | `||:71:NA;` rejection. No bytes were requested for reading. |
 
-These responses show dispatch and rejection. The `NA` on the zero-byte case may
+These responses show dispatch and rejection. The `NA` on the zero-byte cases may
 come from the outer state gate or a later length check; the probe alone does
 not identify which. No setup archive, firmware bytes, or filename was sent.
 
 Run `python scripts/inspect_setup_event7.py <decoded-controller-segment0>` to
 check the static tables against the hash-locked image. Run
 `python scripts/probe_remote_setup_dispatch.py <printer-ip>` to repeat only the
-invalid-envelope cases; add `--zero-copy` to repeat the no-change inner case.
+invalid-envelope cases; add `--zero-copy` and `--zero-read` to repeat the
+no-change inner cases.
 The next necessary proof is the state-gate meaning and a harmless accepted
 setup transaction before attempting any restore archive.
