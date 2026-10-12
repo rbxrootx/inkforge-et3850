@@ -17,6 +17,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Confirmed the live printer advertises JPEG printing over IPPS. A cake page generator and explicit-send IPPS client are ready for the final print, after a custom change is installed and verified. The IPPS client was exercised in read-only mode only.
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
 - Traced a possible ENPC hostname-to-DHCP shell path. The authenticated network configuration session and same-value write work on the live printer. The configuration-scope transition and command execution remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
+- Traced the setup restore archive parser. It passes record filenames to `open()` with truncate flags after a CRC32 check, but the data currently comes through a controller event and no LAN injection path has been shown. See [setup restore parser](research/setup-restore-parser.md).
 
 See [firmware layout](research/firmware-layout.md), [network surface](research/network-surface.md), [administrator API and URL inventory](research/admin-api-inventory.md), and [vulnerability notes](research/vulnerabilities.md).
 
