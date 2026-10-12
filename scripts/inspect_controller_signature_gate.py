@@ -50,6 +50,9 @@ def main() -> None:
         raise ValueError("unexpected IPL startup key copy descriptor")
     if key_source != destination or key_dest + 64 != signature_dest:
         raise ValueError("controller parser literals do not match expected key path")
+    direct_key_literals = controller.count(struct.pack("<I", key_source))
+    if direct_key_literals != 1:
+        raise ValueError(f"unexpected direct key-address literal count: {direct_key_literals}")
     key = ipl[source : source + 64]
     if key != ipl[0x7010 : 0x7050]:
         raise ValueError("the two first-IPL key copies differ")
@@ -60,6 +63,7 @@ def main() -> None:
     print(f"Copied key SHA-256: {hashlib.sha256(key).hexdigest()}")
     print(f"Controller key destination: 0x{key_dest:08x}")
     print(f"Controller signature destination: 0x{signature_dest:08x}")
+    print(f"Direct key-address literals in decoded segment: {direct_key_literals}")
     print("This is a static key-source check, not proof of a live network update path.")
 
 
