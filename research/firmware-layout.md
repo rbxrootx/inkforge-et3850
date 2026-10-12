@@ -14,6 +14,8 @@ This is a possible location for a persistent modification **if** a network write
 
 The `nwsoc` binary contains an `insmod` command for `8723du.ko` with `rtw_power_mgnt=1 rtw_enusbss=1`. The candidate changes those two ASCII digits to `0`. It is byte-length preserving and SHA-guarded by the script in this repository, but it has not reached Wi-Fi initialization in emulation.
 
+The binary also invokes `/opt/nwsoc/wlan_enable_suspend.sh` and `/opt/nwsoc/wlan_disable_suspend.sh`. The enable script sets USB `power/control` to `auto` and clears the Realtek `auto_suspend_block` flag; the disable script sets `power/control` to `on` and sets that flag. This means the two-digit module argument patch alone might not keep USB autosuspend disabled. The candidate remains a hypothesis until the actual call conditions and Wi-Fi behavior can be tested.
+
 ## Hashes
 
 | Artifact | SHA-256 |

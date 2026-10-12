@@ -7,6 +7,7 @@ Read-only observation of a local ET-3850 on firmware `05.15.XB22Q5`:
 - Web Config exposes status and an administrator interface. Its normal Firmware Update page checks for Epson updates; it is not an arbitrary RCX upload form.
 - The official Windows updater executable contains network endpoints such as `/firmwareupdate/checknew` and `/firmwareupdate/writenew`, plus `BCryptVerifySignature` and signature-verification error strings. This establishes host-side signature checking; printer-side enforcement has not been independently exercised.
 - The extracted `nwsoc` image includes `/opt/nwsoc/public_key/enup.pem` and an ENUP authentication path. Successful authentication creates `/tmp/enup_auth_success`, after which a watcher starts Telnet. Static inspection shows a random challenge and one-time-password comparison. No valid authentication or bypass has been found.
+- Static analysis identifies an `EPSON` packet parser bound to UDP 3289. A single read-only `N` request received a 14-byte `EPSONn` response from that port on the live printer, confirming reachability. Its hostname setter is described in the [ENPC/DHCP lead](enpc-dhcp-lead.md). The response does not establish whether configuration writes require authentication; packet security state is unknown.
 
 The live printer was not flashed or reconfigured during this analysis. Its short 30-packet ping baseline had 0% loss and 1-16 ms responses; that sample does not reproduce an intermittent Wi-Fi fault.
 
