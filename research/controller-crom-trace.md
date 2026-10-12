@@ -48,4 +48,4 @@ An incoming `WriteSetup` command is present in the 38-entry request table. Its c
 
 ## Next proof
 
-Validate the controller's initial reply and channel-1 body transfer against the physical printer using a bounded, reversible test. Resolve any earlier verifier and the first-IPL mode for LAN updates, then establish a recovery route before a modified-image test. The exact live controller reply remains uncaptured. The printer has no USB recovery connection available, so no candidate image has been uploaded.
+Validate the controller's initial reply and channel-1 body transfer against the physical printer using a bounded, reversible test. Resolve any earlier verifier and the first-IPL mode for LAN updates, then establish a recovery route before a modified-image test. The exact live controller reply remains uncaptured. A USB cable is now connected, but a recovery transaction has not been demonstrated, so no candidate image has been uploaded.

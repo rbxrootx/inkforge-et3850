@@ -2,9 +2,26 @@
 
 Research into the ET-3850 network firmware and a possible Wi-Fi power-management modification. This repository contains original analysis and tools only. It does not distribute Epson firmware, device credentials, or a flashable image.
 
+## Custom Python jailbreak workbench
+
+Run `python et3850.py` from this directory to open the retro graphical client. It has live Windows USB and print-queue discovery, read-only WinUSB pipe descriptors, offline RCX inspection, a hash-locked Wi-Fi candidate builder, an explicit-address SSH/Telnet reachability check, and LCD theme previews. `Pillow` is needed for the preview and `cryptography` for embedded-key signature verification; the rest of the client uses the Python standard library. The client is our code and does not execute Epson's official updater.
+
+The builder uses separately obtained files in local `work/`: the original XB22Q5 RCX and a rebuilt second SquashFS. Its output also stays in `work/`, outside this public research repository. The default GUI paths match this investigation's local layout. The command-line forms are:
+
+```powershell
+python et3850.py status
+python et3850.py inspect ..\..\work\FWCJ61TL.rcx
+python et3850.py build ..\..\work\FWCJ61TL.rcx ..\..\work\candidate_squashfs_1.img ..\..\work\client_candidate.rcx
+python et3850.py services PRINTER_IP
+```
+
+The current workbench **does not transmit firmware or unlock a shell**. The `FLASH PATH` panel shows the missing USB framing, recovery, and trust checks. The candidate's record checks pass offline while its normal signature does not verify against the running IPL key. See [USB route](research/usb-update-route.md) and [Telnet unlock path](research/telnet-unlock.md).
+
 ## Current state
 
 - Extracted Epson's official XB22Q5 recovery package. The live printer reports `05.15.XB22Q5`.
+- The owner connected the ET-3850 by USB. Windows sees composite `VID_04B8&PID_1181`; Epson Utility interface `MI_02` has 512-byte bulk OUT `0x08` and IN `0x89` endpoints. Static updater analysis found a local `EPSON-CTRL`/`EPSON-DATA` firmware update sequence and generic WinUSB bulk code. Their exact interface mapping and recovery behavior remain unproved. See [USB connection](research/usb-connection-and-recovery.md) and [local update trace](research/usb-update-route.md).
+- Located the owner's 320×240 blue LCD wave background in a decoded controller CROM. A violet/cyan palette change was patched into the compressed CROM and verified offline: re-decoding changes only that PNG. A richer demoscene-style preview is prepared, but its full image replacement and installation remain unverified. See [LCD background assets](research/lcd-background.md).
 - Compared an older official XB05O7 package with XB22Q5. The embedded signing key, suspend scripts, Realtek firmware blob, Wi-Fi module arguments, and HTTP/API-shaped string set are stable; the 8723DU kernel module changed. See [the release comparison](research/official-release-comparison.md).
 - Rehosted the ARM `nwsoc` application under QEMU with synthetic controller replies. Both the original and patched binaries reach D4 communication, PCIF, and SNMP initialization. An offline-only WebApp shim also opens HTTP listeners on ports 80 and 443 inside an isolated network namespace. The mock does not supply the USB detector or valid later D4 events, so the Realtek driver command has not run. See [the application rehost trace](research/application-rehost.md).
 - Identified a candidate change to the Realtek 8723DU module arguments: `rtw_power_mgnt=1 rtw_enusbss=1` to `0,0`. **This has not been validated as a fix.** The executable has 8821CU loader strings, but direct SquashFS listings contain only the 8723DU module and firmware. The test printer's actual USB product identifier is unknown.
@@ -43,7 +60,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 
 See [firmware layout](research/firmware-layout.md), [network surface](research/network-surface.md), [administrator API and URL inventory](research/admin-api-inventory.md), and [vulnerability notes](research/vulnerabilities.md).
 
-The Device Admin installer lead is recorded in [earlier notes](research/device-admin-lead.md) only as historical context. The user has excluded Epson's official admin and updater tools. Current work follows the firmware's own network transport and boot verification code with a self-built client.
+The Device Admin installer lead is recorded in [earlier notes](research/device-admin-lead.md) only as historical context. The user has excluded Epson's official admin and updater tools. Current work follows the firmware's network and USB transports and boot verification code with a self-built client.
 
 For a read-only ENPC UDP 3289 reachability check:
 

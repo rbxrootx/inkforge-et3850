@@ -53,7 +53,7 @@ A separate [decoded controller package path](controller-crom-trace.md#controller
 1. Trace the HTTP type assignment and model feature selection to learn whether the ET-3850 ever uses the generic network POST path.
 2. Trace the XB20-specific updater path and determine whether it checks the signature or passes the RCX to the printer.
 3. Determine what authenticates the first IPL image before this mapped P-256 verifier runs, and whether the controller independently rejects a modified payload. The extracted Linux application and the first IPL code do not answer that question.
-4. Establish a recovery route before testing any modified upload on the physical printer, which currently has no USB connection.
+4. Establish and validate a recovery route before testing any modified upload on the physical printer. USB is now connected, but no recovery transaction has been demonstrated.
 
 No new vulnerability is confirmed by the existence of these endpoints or the signature block. No firmware bytes were sent to the printer in this trace.
 

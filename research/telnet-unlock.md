@@ -1,0 +1,7 @@
+# Telnet unlock path in the extracted XB22Q5 image
+
+The extracted second SquashFS contains `watch_telnetd_trigger.sh`. It checks once per second for `/tmp/enup_auth_success` and then runs `telnetd` if no Telnet daemon is in the process list. The extracted `nwsoc` program creates that flag only after an ENUP RSA challenge response passes. The corresponding private key was not found in the extracted image, and no alternative live trigger has been established. See [ENUP trace](enup-debug-channel.md).
+
+The extracted first SquashFS has `telnetd` and its `/etc/passwd` and `/etc/shadow` entries show `root::...`: the root password field is empty in both files. This is an **offline image observation**; the running system could overlay or replace account data. If those entries are used at runtime, forcing the watcher to launch Telnet would expose a passwordless root login on the printer's network. A custom-image Telnet unlock should therefore set a chosen password or restrict the daemon to a controlled interface before activation. A keyed SSH service would be a better long-term shell once we have code execution and a verified installation path.
+
+There is no observed stock SSH daemon, successful Telnet session, ENUP authentication bypass, or device-side shell. The custom Python workbench probes TCP 22 and 23 only when given a printer address. The immediate research path is to finish the USB update framing and device acceptance study, then test a recoverable custom image. The shell service can be packaged and validated offline before any physical install.
