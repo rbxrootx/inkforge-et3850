@@ -10,6 +10,9 @@ static unsigned int channel_info_stage;
 #if defined(MOCK_STREAM_RESULT) && !defined(MOCK_GET_REQUEST_ID)
 #error MOCK_STREAM_RESULT requires MOCK_GET_REQUEST_ID
 #endif
+#if defined(MOCK_REALISTIC_REQUEST_ID) && !defined(MOCK_GET_REQUEST_ID)
+#error MOCK_REALISTIC_REQUEST_ID requires MOCK_GET_REQUEST_ID
+#endif
 #ifdef MOCK_STREAM_RESULT
 static unsigned int marker_stream_stage;
 #endif
@@ -21,12 +24,23 @@ static const unsigned char main_year_reply[] =
     "Status:00000000\x1b\r\nMainYearInfo:2025\x1b\r\n";
 #ifdef MOCK_GET_REQUEST_ID
 /* Deliberately invented response for offline body-path control-flow research. */
+#ifdef MOCK_REALISTIC_REQUEST_ID
+/* Static controller callback uses ChID 1 and succeeds only for nonzero ID. */
+static const unsigned char get_request_id_reply[] =
+    "HR:200\x1b\r\nRequestID:00000001\x1b\r\nChID:1\x1b\r\n";
+#else
 static const unsigned char get_request_id_reply[] =
     "HR:200\x1b\r\nRequestID:0\x1b\r\nChID:1\x1b\r\n";
 #endif
+#endif
 #ifdef MOCK_STREAM_RESULT
 /* Also invented: confirms only that Linux handles a successful stream reply. */
+#ifdef MOCK_REALISTIC_REQUEST_ID
+static const unsigned char marker_stream_reply[] =
+    "HR:200\x1b\r\nRequestID:00000001\x1b\r\n";
+#else
 static const unsigned char marker_stream_reply[] = "HR:200\x1b\r\n";
+#endif
 #endif
 static const unsigned char *active_reply = channel_info_reply;
 static u32 active_reply_length = sizeof(channel_info_reply) - 1;
@@ -139,6 +153,10 @@ int ioctl(int fd, unsigned long request, void *arg) {
                 destination[0] = (unsigned char)(n >> 8);
                 destination[1] = (unsigned char)n;
                 for (u32 i = 2; i < 8; ++i) destination[i] = 0;
+#ifdef MOCK_REALISTIC_REQUEST_ID
+                /* The D4 frame carries its request ID as big-endian bytes 2..5. */
+                destination[5] = 1;
+#endif
                 packet[2] = 8;
                 packet[3] = 0;
                 packet[5] = 0;

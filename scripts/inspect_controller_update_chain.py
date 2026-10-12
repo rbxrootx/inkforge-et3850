@@ -49,6 +49,8 @@ def main() -> None:
 
     path = word(provisional(0x459133F8))
     assert string(path) == b"/DOWN/FIRMWAREUPDATE/"
+    rom_reply = word(provisional(0x459133FC))
+    assert rom_reply == provisional(0x45912640)
 
     group76_table = provisional(0x45809A18)
     assert word(provisional(0x45809A10)) == 0x379FF100
@@ -83,6 +85,7 @@ def main() -> None:
           f"-> state function {prep_function:#x}")
     print(f"POST URI prefix {string(path).decode()} -> event 0x76/8")
     print(f"event 0x76/8 -> ROM handler {rom_handler:#x}; ROM selector {rom_selector:#x}")
+    print(f"ROM request reply callback {rom_reply:#x}: static ChID 1, nonzero request ID for 200")
     print(f"ROM1 branch 0xb -> event 5/3 -> handler {group5_handler:#x}")
     print(f"branch 0xb callback IDs: 0x11, 0x12; runtime table {runtime_callback_table:#x}")
     print("Static chain only: live acceptance, streamed body callback, and signature gate are unproved")
