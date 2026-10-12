@@ -160,6 +160,7 @@ def main() -> None:
         def ipl_word(offset: int) -> int:
             return struct.unpack_from("<I", ipl, offset)[0]
 
+        assert ipl_word(0xA37E8) == 0x4370D000  # address-table lead, not decoded target code
         source = ipl_word(0x56298)
         destination = ipl_word(0x5629C)
         length = ipl_word(0x562A0)
@@ -187,6 +188,7 @@ def main() -> None:
     print(f"ROM1 reader result -> status record 0xca4 -> group 5/5 {group5_done:#x} -> group 0x76/5 {group76_done:#x}")
     print("status 0xca4 == 1 -> staged-buffer metadata -> external commands 0x2a and 0x2b at 0x4370d47c/0x4370d588")
     if copied_callback_objects is not None:
+        print("IPL address table lists 0x4370d000, 0x47c below the first external target; target code remains unmapped")
         print(f"IPL copy -> RAM callback table: source {source:#x}, destination {destination:#x}, length {length:#x}")
         print(f"ROM branch callback 0x11 -> {callback_11:#x}; 0x12 -> {callback_12:#x} (group 0x77/3 sender)")
     print("Static chain only: live body acceptance, external handoff validation, and flash commit are unproved")
