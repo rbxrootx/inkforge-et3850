@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check whether two XB20d RCX signatures reuse the same ECDSA nonce."""
+"""Check two or more XB20d RCX signatures for exact ECDSA r reuse."""
 
 import argparse
 import hashlib
@@ -40,20 +40,27 @@ def inspect(path: Path) -> tuple[bytes, bytes, int, int]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("first", type=Path)
-    parser.add_argument("second", type=Path)
+    parser.add_argument("images", type=Path, nargs="+", help="Two or more separately obtained RCX files")
     args = parser.parse_args()
-    first = inspect(args.first)
-    second = inspect(args.second)
-    print("Both signatures verify against their embedded keys.")
-    print("Same public key:", first[0] == second[0])
-    print("Different payload digests:", first[1] != second[1])
-    print("Same ECDSA r:", first[2] == second[2])
-    print("Same ECDSA s:", first[3] == second[3])
-    if first[0] == second[0] and first[1] != second[1] and first[2] == second[2]:
+    if len(args.images) < 2:
+        parser.error("provide at least two RCX files")
+    rows = [(path, inspect(path)) for path in args.images]
+    for path, (key, digest, r, s) in rows:
+        print(f"{path.name}: key_sha256={hashlib.sha256(key).hexdigest()} "
+              f"payload_sha256={digest.hex()} r={r:064x} s={s:064x}")
+    print("All signatures verify:", True)
+    print("Same public key:", len({row[0] for _, row in rows}) == 1)
+    repeated_r = [
+        (a.name, b.name)
+        for i, (a, first) in enumerate(rows)
+        for b, second in rows[i + 1:]
+        if first[0] == second[0] and first[1] != second[1] and first[2] == second[2]
+    ]
+    print("Repeated r on different payloads:", repeated_r)
+    if repeated_r:
         print("WARNING: repeated r merits private-key recovery analysis.")
     else:
-        print("No exact repeated-nonce signal in this pair.")
+        print(f"No exact repeated-nonce signal in {len(rows)} samples.")
 
 
 if __name__ == "__main__":
