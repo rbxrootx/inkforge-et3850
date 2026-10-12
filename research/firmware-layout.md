@@ -14,7 +14,7 @@ This is a possible location for a persistent modification **if** a network write
 
 The `nwsoc` binary contains an `insmod` command for `8723du.ko` with `rtw_power_mgnt=1 rtw_enusbss=1`. The candidate changes those two ASCII digits to `0`. It is byte-length preserving and SHA-guarded by the script in this repository, but it has not reached Wi-Fi initialization in emulation.
 
-The binary also invokes `/opt/nwsoc/wlan_enable_suspend.sh` and `/opt/nwsoc/wlan_disable_suspend.sh`. The enable script sets USB `power/control` to `auto` and clears the Realtek `auto_suspend_block` flag; the disable script sets `power/control` to `on` and sets that flag. This means the two-digit module argument patch alone might not keep USB autosuspend disabled. The candidate remains a hypothesis until the actual call conditions and Wi-Fi behavior can be tested.
+The binary also invokes `/opt/nwsoc/wlan_enable_suspend.sh` and `/opt/nwsoc/wlan_disable_suspend.sh`. The enable script sets USB `power/control` to `auto` and clears the Realtek `auto_suspend_block` flag; the disable script sets `power/control` to `on` and sets that flag. This means the two-digit module argument patch alone might not keep USB autosuspend disabled. A second SHA-guarded offline candidate changes the enable script to retain `power/control=on` and `auto_suspend_block=1`. Neither candidate has been installed or tested against Wi-Fi behavior.
 
 ## Hashes
 
@@ -24,3 +24,5 @@ The binary also invokes `/opt/nwsoc/wlan_enable_suspend.sh` and `/opt/nwsoc/wlan
 | Extracted RCX | `103c9514e57f143f2619abcd280bd4d0926abf5370e03d28753a334ae02cd675` |
 | Original `nwsoc` | `70728f452c5358c4ef04ec39354c4656c42fa6e662af675ce88d161f05949ac0` |
 | Candidate `nwsoc` | `5136c1deeeac519fe3dbcde7e094f7012768fa454e3954a9056313ab6a3a4652` |
+| Original `wlan_enable_suspend.sh` | `dd63b11cade9a72a570e9fe28d680456b5dfed51530a34d25f28acd55e93322a` |
+| Candidate `wlan_enable_suspend.sh` | `cd69813b0b73f57582f021cb208a842900ecd47b07bda5b29e6d2f8fd032778e` |

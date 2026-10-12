@@ -34,9 +34,10 @@ The script checks the package and RCX SHA-256 hashes, extracts the nested RCX, a
 
 ```powershell
 python scripts/patch_candidate.py --input path/to/nwsoc --output path/to/nwsoc.patched
+python scripts/patch_suspend_candidate.py --input path/to/wlan_enable_suspend.sh --output path/to/wlan_enable_suspend.sh.patched
 ```
 
-The candidate is an offline research artifact. There is no install command in this repository.
+The second candidate keeps USB `power/control` at `on` and blocks Realtek autosuspend when the firmware calls the enable-suspend script. Both candidates are offline research artifacts. There is no install command in this repository.
 
 ## Reporting
 
