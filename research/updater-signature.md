@@ -38,6 +38,10 @@ An offline control replaces both IPL copies of that public key with a fresh P-25
 
 The key loaded by the **running** XB22Q5 IPL is the original public key. [`check_rcx_against_current_ipl.py`](../scripts/check_rcx_against_current_ipl.py) confirms that it verifies the original RCX and rejects the self-signed Wi-Fi candidate. If the update route invokes the mapped verifier before replacing the running IPL, copying a new key into the candidate does not bypass that check. The live device's IPL bytes have not been dumped, and the exact route-to-verifier call remains to be proven.
 
+The decoded controller's **reader control flow** has a separate [declared-length bypass](controller-signature-length-bypass.md): it can return success after three records while its signed-payload counter remains positive, without calling that verifier. This does not make a modified ECDSA signature cryptographically valid or establish that a live network update reaches the reader.
+
+The first IPL contains a distinct finalizer at raw code offset `0x9614` that checks its remaining-byte counter for exactly zero before calling its P-256 decision routine at `0xa2a0`, but **only when its stream state is `2`**. Its valid-record parser at `0x266a4` and caller at `0x26898` set that state to `2` when the memory-mapped byte at `0x82c00000` equals `2`; otherwise they set state `3`. In state `2`, a positive remaining count enters error status `2` and would stop the length-bypass candidate. The live mode byte and ordering of this path relative to the decoded controller reader remain unknown.
+
 A separate [decoded controller package path](controller-crom-trace.md#controller-side-epsonsign-gate) reads the same original key through the **other** first-IPL startup copy: raw source `0x13f000` to RAM `0x4fb26800`. Its `EPSONSIGNXB20d` parser uses that RAM key for a P-256 signature check after hashing the incoming payload. This makes self-signing with a substituted key ineffective on that package path. It remains unknown whether the observed network HTTP relay invokes this controller routine.
 
 ## Remaining installation questions
