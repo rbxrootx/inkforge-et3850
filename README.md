@@ -7,7 +7,8 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Extracted Epson's official XB22Q5 recovery package. The live printer reports `05.15.XB22Q5`.
 - Compared an older official XB05O7 package with XB22Q5. The embedded signing key, suspend scripts, Realtek firmware blob, Wi-Fi module arguments, and HTTP/API-shaped string set are stable; the 8723DU kernel module changed. See [the release comparison](research/official-release-comparison.md).
 - Rehosted the ARM `nwsoc` application under QEMU. It reaches the internal EPIDC/D4 controller handshake, then stops before Wi-Fi initialization.
-- Identified a candidate change to the Realtek 8723DU module arguments: `rtw_power_mgnt=1 rtw_enusbss=1` to `0,0`. **This has not been validated as a fix.** The loader can also select an 8821CU driver, and the test printer's actual USB product identifier is unknown.
+- Identified a candidate change to the Realtek 8723DU module arguments: `rtw_power_mgnt=1 rtw_enusbss=1` to `0,0`. **This has not been validated as a fix.** The executable has 8821CU loader strings, but direct SquashFS listings contain only the 8723DU module and firmware. The test printer's actual USB product identifier is unknown.
+- Built a second offline candidate that changes those arguments in all five 8723DU and 8821CU load commands. The script checks the exact source hash, command counts, output length, and changed-byte count. See [the custom firmware status](research/custom-firmware-status.md).
 - Found a boot hook in the extracted firmware: `/opt/nwsoc_data/ExtBoot`, executed before `nwsoc`. No verified network method to write this hook has been found.
 - Traced the updater's network POST selection and generic SHA-256/ECDSA P-256 verification code. The ET-3850 RCX signature verifies against an embedded public key, but the updater's compiled key table omits XB20 and its model-specific path is unresolved. A modified RCX is not currently installable. See [the updater signature trace](research/updater-signature.md).
 - Found a documented Epson Device Admin **Load from PC** firmware workflow. Epson materials list the ET-3850 as Device Admin compatible, but the firmware feature and accepted format have not been checked on this unit. See [the Device Admin lead](research/device-admin-lead.md).
@@ -57,9 +58,10 @@ The script checks the package and RCX SHA-256 hashes, extracts the nested RCX, a
 ```powershell
 python scripts/patch_candidate.py --input path/to/nwsoc --output path/to/nwsoc.patched
 python scripts/patch_suspend_candidate.py --input path/to/wlan_enable_suspend.sh --output path/to/wlan_enable_suspend.sh.patched
+python scripts/patch_wifi_power_all.py --input path/to/nwsoc --output path/to/nwsoc.wifi-power-all
 ```
 
-The second candidate keeps USB `power/control` at `on` and blocks Realtek autosuspend when the firmware calls the enable-suspend script. That call appears in a USB/Bluetooth initialization path; whether the script influences the reported Wi-Fi fault is unknown. Both candidates are offline research artifacts. There is no install command in this repository.
+The suspend-script candidate keeps USB `power/control` at `on` and blocks Realtek autosuspend when the firmware calls the enable-suspend script. That call appears in a USB/Bluetooth initialization path; whether the script influences the reported Wi-Fi fault is unknown. All candidates are offline research artifacts. There is no install command in this repository.
 
 ## Reporting
 
