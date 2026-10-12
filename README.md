@@ -10,7 +10,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Found a boot hook in the extracted firmware: `/opt/nwsoc_data/ExtBoot`, executed before `nwsoc`. No verified network method to write this hook has been found.
 - Confirmed that the official updater binary contains a network transport and host-side firmware signature verification. A modified RCX is not currently installable.
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
-- Traced a possible ENPC hostname-to-DHCP shell path. The packet writer and shell sink are present, but the configuration-scope transition and live security gate remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
+- Traced a possible ENPC hostname-to-DHCP shell path. The authenticated network configuration session and same-value write work on the live printer. The configuration-scope transition and command execution remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
 
 See [firmware layout](research/firmware-layout.md), [network surface](research/network-surface.md), and [vulnerability notes](research/vulnerabilities.md).
 
