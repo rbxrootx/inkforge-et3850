@@ -52,6 +52,16 @@ def main() -> None:
 
     group76_table = provisional(0x45809A18)
     assert word(provisional(0x45809A10)) == 0x379FF100
+    prep_handler = word(group76_table + 6 * 4)
+    assert prep_handler == provisional(0x45809AA0)
+    prep_call = provisional(0x45809AA8)
+    branch = word(prep_call)
+    assert branch >> 24 == 0xEB
+    displacement = branch & 0xFFFFFF
+    if displacement & 0x800000:
+        displacement -= 0x1000000
+    prep_function = prep_call + 8 + displacement * 4
+    assert prep_function == provisional(0x45808B2C)
     rom_handler = word(group76_table + 8 * 4)
     assert rom_handler == provisional(0x45809AB8)
     rom_selector = provisional(0x458089A4)
@@ -69,6 +79,8 @@ def main() -> None:
     assert runtime_callback_table == 0x43EAE878
 
     print(f"EpsonLocalReq:GetRequestID -> parser {get_request_callback:#x}")
+    print(f"GET /FIRMWAREUPDATE -> event 0x76/6 -> prep handler {prep_handler:#x} "
+          f"-> state function {prep_function:#x}")
     print(f"POST URI prefix {string(path).decode()} -> event 0x76/8")
     print(f"event 0x76/8 -> ROM handler {rom_handler:#x}; ROM selector {rom_selector:#x}")
     print(f"ROM1 branch 0xb -> event 5/3 -> handler {group5_handler:#x}")
