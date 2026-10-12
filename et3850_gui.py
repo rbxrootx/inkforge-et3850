@@ -36,7 +36,7 @@ class App:
         self.squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_squashfs_1.img"))
         self.first_squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_squashfs_0.img"))
         self.destination = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_wifi_candidate.rcx"))
-        self.flash_image = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_wifi_photo_candidate.rcx"))
+        self.flash_image = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "FWCJ61TL.rcx"))
         self.host = tk.StringVar()
         self.append_byte = tk.BooleanVar(value=True)
         self.patch_ipl = tk.BooleanVar(value=True)
@@ -183,14 +183,14 @@ class App:
         self.patch_report.insert("end", "Select an RCX to inspect, or build from the pinned source and rebuilt SquashFS.\n\nNo image is sent to the printer.")
 
     def _page_flash_path(self):
-        self._title("FLASH PATH", "The attached USBPRINT D4 channel is live. Full transfer and image acceptance remain unverified.")
+        self._title("FLASH PATH", "Signed-stock transfer and update-end were acknowledged; custom image acceptance remains unverified.")
         card = self._card(title="LOCAL TRANSPORT")
         self._line(card, "USBPRINT MI_01 returned the printer's XB22Q5 version and status.", LIME)
         self._line(card, "EPSON-CTRL carries fl / gm update commands; EPSON-DATA carries the RCX binary stream.")
         card = self._card(title="INSTALL GATES")
         for label, state in (("Physical USB link", "OBSERVED"),
                              ("CTRL version/status framing", "OBSERVED"),
-                             ("DATA firmware transfer", "OPEN"),
+                             ("Signed-stock DATA transfer", "OBSERVED"),
                              ("Recovery mode and restore", "OPEN"),
                              ("Device trust / acceptance", "OPEN"),
                              ("Custom image installed", "NO")):
@@ -199,6 +199,7 @@ class App:
         self._file_row(card, "HASH-LOCKED RCX TO PREFLIGHT OR SEND", self.flash_image)
         self._line(card, "Pinned stock, Wi-Fi/Telnet, and photo-wallpaper candidate hashes pass preflight.", LIME)
         self._line(card, "The custom image fails normal signature verification. A device rejection or failed boot is possible.", PINK)
+        self._line(card, "The photo replaces a blue-wave asset; the owner reports a white home screen, so its display target is unverified.", PINK)
         row = tk.Frame(card, bg=PANEL)
         row.pack(anchor="w", pady=(8, 0))
         self._button(row, "PREFLIGHT CANDIDATE", self.preflight_flash)
