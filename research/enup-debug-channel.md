@@ -7,6 +7,26 @@ TCP or UDP listener. A boot script waits for `/tmp/enup_auth_success` and starts
 but a successful network authentication or Telnet session has **not** been
 observed on the ET-3850.
 
+## What this channel is for
+
+The static command dispatch shows a service and debugging interface. Once
+`/tmp/enup_auth_success` exists, command `4` removes the persistent
+`enup_auth_ready_flag`, command `5` redirects standard output and error to a
+`/dev/ttyp%d` device, command `6` creates `/tmp/gdbserver_start`, and command
+`7` writes NFS configuration fields under `/opt/nwsoc_data/nfs_info/`:
+`nfs_flag`, `client_ip`, `server_ip`, and `mac_addr`. A separate watcher sees
+`/tmp/gdbserver_start` and attempts to launch `gdbserver` on port `2000`
+against `nwsoc`. Its command line contains `--attatch`, so whether it actually
+starts is unverified. The Telnet watcher starts `telnetd` once
+`/tmp/enup_auth_success` appears.
+
+The RSA step gates these capabilities: the device encrypts a fresh challenge
+with the embedded public key and compares the returned 32-byte plaintext to
+the challenge. The corresponding private key would be needed to produce a
+valid answer by the intended protocol. The public key itself does not grant
+access. This is an inference from the extracted code, not a vendor description
+of ENUP's purpose. No command was exercised on the live printer.
+
 ## Static authentication trace
 
 In the XB22Q5 `nwsoc` image (SHA-256
@@ -22,7 +42,7 @@ with `0xaaaaaaaa` before the comparison. On that branch it executes
 with exponent 65537. The corresponding private key is not in the extracted
 image.
 
-`FUN_0022da38` at `0x0022da38` allocates/receives up to `0x41b` bytes and
+`FUN_0022da38` at `0x0022da38` receives into a `0x41b`-byte allocation and
 uses the IPv4 total-length field at packet offset 2 when it is at most
 `0x419`. It subtracts the first `recv()` count from that field without an
 explicit count-versus-declared-length check. A synthetic receive result larger
@@ -31,6 +51,11 @@ IP stack is expected to deliver a packet according to its total-length field.
 There is **no confirmed reachable overflow** from this observation. A real
 report would require showing that the device's raw socket receives such a
 packet and that a subsequent receive writes beyond the allocation.
+The raw IPv4 socket normally receives a complete datagram as one packet, with
+lengths constrained by the IP stack; that makes the underflow condition
+uncertain in practice. The function also accepts a positive short return
+without checking the minimum ENUP header length before its caller reads fixed
+offsets.
 
 The handler clears only four bytes of its `0x41b`-byte receive allocation
 between stages. A short packet can leave stale bytes in the rest of that

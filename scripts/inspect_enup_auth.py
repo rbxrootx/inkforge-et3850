@@ -40,6 +40,13 @@ def main() -> None:
         0x22EC5C: "/dev/urandom",
         0x22EC68: "/opt/nwsoc/public_key/enup.pem",
         0x22EC70: "touch /tmp/enup_auth_success",
+        0x22EDD0: "/dev/ttyp%d",
+        0x22F130: "/opt/nwsoc_data/nfs_info",
+        0x22F14C: "/opt/nwsoc_data/nfs_info/nfs_flag",
+        0x22F15C: "/opt/nwsoc_data/nfs_info/client_ip",
+        0x22F164: "/opt/nwsoc_data/nfs_info/server_ip",
+        0x22F174: "/opt/nwsoc_data/nfs_info/mac_addr",
+        0x22F1D8: "touch /tmp/gdbserver_start",
     }
     for ptr_at, text in expected.items():
         actual = cstring(word(ptr_at))
