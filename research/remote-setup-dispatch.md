@@ -16,8 +16,16 @@ the fourth must complement it, and a one-bit rotation of the fifth must equal
 it. The same handler has a state gate: when its third call argument is `4`, a
 controller state word at `0x43edb930` must be `1`. The value of that word on the
 live device and the exact meaning of the argument have not been established.
-The generic two-letter router at `0x459ae940` passes this argument from an
-event field at offset `+0x12`; the source of that field is still being traced.
+The generic two-letter router at `0x459ae940` passes this argument from a
+queue-`0x0c` event field at offset `+0x12`. The SNMP private-OID callback at
+`0x45988e94` calls `0x45904bf4`/`0x459ae788`, which copies the request into
+queue `0x0c` event `4`. It supplies the source argument from the low byte of a
+field at offset `+0x08` in the SNMP callback's context. The meaning and live
+value of that SNMP field are not yet known. The callback wrapper at
+`0x45989034` processes only its operation code `2`; other operation codes
+return `6` before entering this private-OID parser. This limits which SNMP
+operations can reach the command router, although the meaning of those numeric
+codes is still being traced.
 
 The inner table has `p` at `0x45b7c408` (handler `0x459b14e8`) and `q` at
 `0x45b7c410` (handler `0x459b1678`). The `p` handler expects a seven-byte inner
@@ -53,9 +61,14 @@ a little-endian body length, and body bytes. It sent three cases:
 | `||`, matching check bytes with `p` type `2` and zero data bytes | `00 7c 7c 3a 37 30 3a 4e 41 3b 0c` | `||:70:NA;` rejection. No bytes were supplied for copying. |
 | `||`, matching check bytes with `q` type `2` and zero data bytes | `00 7c 7c 3a 37 31 3a 4e 41 3b 0c` | `||:71:NA;` rejection. No bytes were requested for reading. |
 
-These responses show dispatch and rejection. The `NA` on the zero-byte cases may
-come from the outer state gate or a later length check; the probe alone does
-not identify which. No setup archive, firmware bytes, or filename was sent.
+These responses show dispatch and rejection. The `q` zero-read case is expected
+to fail because its inner handler requires at least one byte. The `p`
+zero-copy case is more informative: the inner `p` handler accepts a seven-byte
+type-`2` header with zero data, and its RAM copy helper returns success for a
+zero-byte copy. The live `||:70:NA` therefore points to rejection in the outer
+`||` handler, most likely the state gate above. This is an inference from the
+static path and one live response, not a measured value of the state word. No
+setup archive, firmware bytes, or filename was sent.
 
 Run `python scripts/inspect_setup_event7.py <decoded-controller-segment0>` to
 check the static tables against the hash-locked image. Run
