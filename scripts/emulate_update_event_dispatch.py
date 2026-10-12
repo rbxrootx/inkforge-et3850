@@ -2,7 +2,8 @@
 """Isolate XB22Q5 controller group 0x76 jump-table behavior.
 
 Requires a separately extracted, hash-matched CROM segment and Unicorn.
-This never contacts a printer and does not model its controller OS.
+The CROM bytes load 0x8c below the earlier provisional mapping. This never
+contacts a printer and does not model its controller OS.
 """
 
 import argparse
@@ -13,18 +14,25 @@ from unicorn import Uc, UcError, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE, UC_HOOK
 from unicorn.arm_const import UC_ARM_REG_PC, UC_ARM_REG_R9, UC_ARM_REG_SP
 
 
-BASE = 0x45670000
+PROVISIONAL_BASE = 0x45670000
+LOAD_BASE = PROVISIONAL_BASE - 0x8C
 SHA256 = "7bdc1c0562adda78bb541cbadac1ac104367c0b839262ea1f51d38e07a54e416"
-ENTRY = 0x45809A04
-LOOP = 0x45809BC0
+ENTRY = 0x45809A04 - 0x8C
 STACK = 0x20000000
 EVENT = 0x10000000
+HANDLERS = {
+    6: 0x45809A14,
+    7: 0x45809A24,
+    8: 0x45809A2C,
+    9: 0x45809A44,
+}
 
 
 def run_case(image: bytes, subcommand: int) -> str:
     cpu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
-    cpu.mem_map(BASE, (len(image) + 0xFFF) & ~0xFFF)
-    cpu.mem_write(BASE, image)
+    map_start = LOAD_BASE & ~0xFFF
+    cpu.mem_map(map_start, (len(image) + LOAD_BASE - map_start + 0xFFF) & ~0xFFF)
+    cpu.mem_write(LOAD_BASE, image)
     cpu.mem_map(STACK, 0x1000)
     cpu.mem_map(EVENT, 0x1000)
     sp = STACK + 0x100
@@ -35,8 +43,9 @@ def run_case(image: bytes, subcommand: int) -> str:
     result = []
 
     def on_code(uc: Uc, address: int, size: int, user_data: object) -> None:
-        if address == LOOP:
-            result.append("returned to event loop")
+        if address == HANDLERS[subcommand]:
+            result.append(f"selected handler {address:#x} "
+                          f"(file offset {address - LOAD_BASE:#x})")
             uc.emu_stop()
 
     def on_bad_write(uc: Uc, access: int, address: int, size: int, value: int, user_data: object) -> bool:
@@ -46,12 +55,10 @@ def run_case(image: bytes, subcommand: int) -> str:
     cpu.hook_add(UC_HOOK_CODE, on_code)
     cpu.hook_add(UC_HOOK_MEM_WRITE_UNMAPPED, on_bad_write)
     try:
-        cpu.emu_start(ENTRY, LOOP, count=40)
+        cpu.emu_start(ENTRY, 0, count=40)
     except UcError:
         if not result:
             raise
-    if not result and cpu.reg_read(UC_ARM_REG_PC) == LOOP:
-        result.append("returned to event loop")
     return result[0] if result else "stopped without a classified result"
 
 

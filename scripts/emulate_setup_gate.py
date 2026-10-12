@@ -14,9 +14,10 @@ from unicorn import Uc, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE
 from unicorn.arm_const import UC_ARM_REG_R0, UC_ARM_REG_SP, UC_ARM_REG_LR, UC_ARM_REG_PC
 
 
-BASE = 0x45670000
-FUNCTION = 0x4591465C
-SETUP_REQUEST = 0x4589B0FC
+PROVISIONAL_BASE = 0x45670000
+BASE = PROVISIONAL_BASE - 0x8c
+FUNCTION = 0x4591465C - 0x8c
+SETUP_REQUEST = 0x4589B0FC - 0x8c
 END = 0x30000000
 DATA = 0x10000000
 STACK = 0x20000000
@@ -27,7 +28,8 @@ def run_case(image: bytes, payload: bytes) -> str:
     if len(payload) < 32:
         payload += b"\x00"
     cpu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
-    cpu.mem_map(BASE, (len(image) + 0xFFF) & ~0xFFF)
+    map_start = BASE & ~0xfff
+    cpu.mem_map(map_start, (len(image) + BASE - map_start + 0xfff) & ~0xfff)
     cpu.mem_write(BASE, image)
     cpu.mem_map(DATA, 0x1000)
     cpu.mem_map(STACK, 0x1000)

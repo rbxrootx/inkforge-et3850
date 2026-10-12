@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect the ambiguous controller request table in a decoded XB22Q5 CROM.
+"""Inspect controller request dispatch tables in decoded XB22Q5 CROM.
 
 This is offline only. Obtain the controller segment separately with
 extract_controller_crom.py. Nothing is sent to a printer.
@@ -11,8 +11,13 @@ from pathlib import Path
 
 
 EXPECTED_SHA256 = "7bdc1c0562adda78bb541cbadac1ac104367c0b839262ea1f51d38e07a54e416"
-BASE = 0x45670000
-TABLE_LITERAL = 0x4590E67C
+BASE = 0x4566FF74
+PROVISIONAL_BASE = 0x45670000
+TABLES = (
+    ("four-byte prefix", 0x4590ED78, 5),
+    ("EpsonLocalReq command", 0x4590ED7C, 0x26),
+    ("HTTP response prefix", 0x4590E67C, 1),
+)
 GET_REQUEST_NAME = b"GetRequestID"
 FIRMWARE_NAME = b"/FIRMWAREUPDATE"
 
@@ -40,20 +45,18 @@ def main() -> None:
     if digest != EXPECTED_SHA256:
         parser.error(f"unexpected controller SHA-256: {digest}")
 
-    table = word(image, TABLE_LITERAL)
-    print(f"matcher table literal 0x{TABLE_LITERAL:08x} -> 0x{table:08x}")
-    print("first eight-byte records as loaded by matcher:")
-    for index in range(16):
-        at = table + 8 * index
-        first, second = word(image, at), word(image, at + 4)
-        print(f"  {index:2} @ 0x{at:08x}: 0x{first:08x} {show_string(image, first)} | 0x{second:08x}")
-    zero_prefix_index = next(
-        (index for index in range(16)
-         if image[word(image, table + 8 * index) - BASE] == 0), None
-    )
-    if zero_prefix_index is not None:
-        print(f"record {zero_prefix_index} has a zero-length raw prefix; "
-              "the decoded table cannot establish live dispatch behavior")
+    for label, provisional_literal, count in TABLES:
+        literal = provisional_literal - (PROVISIONAL_BASE - BASE)
+        table = word(image, literal)
+        print(f"{label} table: literal 0x{literal:08x} -> 0x{table:08x}; {count} records")
+        for index in range(count):
+            at = table + 8 * index
+            name, callback = word(image, at), word(image, at + 4)
+            if not BASE <= callback < BASE + len(image):
+                raise ValueError(f"callback outside CROM at record {index}: {callback:#x}")
+            print(f"  {index:2} @ 0x{at:08x}: 0x{name:08x} "
+                  f"{show_string(image, name)} | callback 0x{callback:08x} "
+                  f"(provisional 0x{callback + PROVISIONAL_BASE - BASE:08x})")
 
     for name in (GET_REQUEST_NAME, FIRMWARE_NAME):
         offset = image.find(name)
@@ -69,11 +72,8 @@ def main() -> None:
                   f"{[f'0x{site:08x}' for site in references]}")
             offset = image.find(name, offset + 1)
 
-    # The request table also contains a pointer into the final four bytes of
-    # GetRequestID. This is a byte-level fact, not proof that the handler runs.
-    suffix_pointer = BASE + image.find(GET_REQUEST_NAME) + 8
-    print(f"request-name suffix 0x{suffix_pointer:08x}: {show_string(image, suffix_pointer)}")
-    print("No reachability or update-acceptance conclusion follows from this table alone.")
+    print("These static pointers identify controller dispatch callbacks. They do not "
+          "show a successful live request or image acceptance.")
 
 
 if __name__ == "__main__":

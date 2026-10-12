@@ -18,7 +18,7 @@ Use a separately obtained XB22Q5 RCX (SHA-256 `103c9514e57f143f2619abcd280bd4d09
 python scripts/emulate_controller_reader_length.py controller-0.bin FWCJ61TL.rcx --compare-plus-one
 ```
 
-The script executes the extracted ARM signature-header parser, signed-stream routine, IPL record parser, type gate, and three-record reader. It stubs hardware I/O, hash calculations, record-integrity checks, and staging operations. The verifier stub always rejects so the control shows whether it is reached:
+The script executes the extracted ARM signature-header parser, signed-stream routine, IPL record parser, type gate, and three-record reader at the corrected CROM load base `0x4566ff74`. It stubs hardware I/O, hash calculations, record-integrity checks, and staging operations. The verifier stub always rejects so the control shows whether it is reached:
 
 | Declared length | Reader result | Remaining bytes | ECDSA calls |
 | ---: | ---: | ---: | ---: |
@@ -37,4 +37,4 @@ There is a **second, conditional gate** in the first IPL. Its signature-header p
 
 The first IPL itself writes that mode byte during early startup in `0xd58`. It selects `0` or `1` from boot-source checks, and reaches its mode-`2` assignment after those checks pass and either a separate status condition succeeds or the two-byte family marker fails to match its built-in `XB` marker. The comparison source pointer at `0xe84` is `0x74fff8`, which points to `XB22Q5` at the end of the extracted first IPL; its built-in marker at `0xe88` is `XB`. The stock image therefore passes this *one* family comparison. This does not establish the other boot conditions or the live mode. The later initialization at `0x8f60` reads the same `0x82c00000` byte, and the first-IPL update handler at `0x25ec8` uses it to restrict `fv` firmware commands. [`inspect_ipl0_boot_mode.py`](../scripts/inspect_ipl0_boot_mode.py) checks these pointers and marker bytes from a separately supplied, hash-checked first IPL.
 
-The physical printer is accessible only over Wi-Fi and has no established recovery channel, so no 40 MB candidate upload has been attempted. Confirming the LAN path and any earlier authentication gate is necessary before claiming an install or a device vulnerability.
+The corrected [controller CROM trace](controller-crom-trace.md) now maps the Linux first-stage `GetRequestID` request to a ROM1/ROM2 selector. It does not yet map the subsequent streamed body to this signed reader. The physical printer is accessible only over Wi-Fi and has no established recovery channel, so no 40 MB candidate upload has been attempted. Confirming the body path and any earlier authentication gate is necessary before claiming an install or a device vulnerability.

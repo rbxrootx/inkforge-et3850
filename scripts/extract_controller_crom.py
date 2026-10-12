@@ -62,7 +62,8 @@ def main() -> int:
             parser.error(f"Refusing to replace {path}")
         path.write_bytes(segment)
         print(f"{path}: {len(segment)} bytes SHA-256 {sha256(segment)}")
-    print("ARM analysis base for segment 0: 0x45670000")
+    print("ARM runtime load base for segment 0: 0x4566ff74")
+    print("Earlier Ghidra notes use provisional base 0x45670000; subtract 0x8c from those addresses")
     return 0
 
 

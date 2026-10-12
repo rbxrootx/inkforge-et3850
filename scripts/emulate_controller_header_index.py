@@ -17,9 +17,10 @@ from unicorn.arm_const import UC_ARM_REG_LR, UC_ARM_REG_PC, UC_ARM_REG_R0, UC_AR
 
 SEGMENT_SHA256 = "7bdc1c0562adda78bb541cbadac1ac104367c0b839262ea1f51d38e07a54e416"
 RCX_SHA256 = "103c9514e57f143f2619abcd280bd4d0926abf5370e03d28753a334ae02cd675"
-BASE = 0x45670000
-ENTRY = 0x457779e0
-TYPE_GATE = 0x457783b0
+PROVISIONAL_BASE = 0x45670000
+BASE = PROVISIONAL_BASE - 0x8c
+ENTRY = 0x457779e0 - 0x8c
+TYPE_GATE = 0x457783b0 - 0x8c
 TABLE = 0x45c65a88
 META = 0x45d65d6c
 KEY_BUFFER = 0x45d660e4
@@ -37,7 +38,8 @@ def run_case(image: bytes, original_header: bytes, index: int) -> tuple[int, int
     header = bytearray(original_header)
     struct.pack_into("<H", header, 0x38, index)
     cpu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
-    cpu.mem_map(BASE, (len(image) + 0xfff) & ~0xfff)
+    map_start = BASE & ~0xfff
+    cpu.mem_map(map_start, (len(image) + BASE - map_start + 0xfff) & ~0xfff)
     cpu.mem_write(BASE, image)
     cpu.mem_map(0x45c00000, 0x200000)
     cpu.mem_map(STACK, 0x10000)
