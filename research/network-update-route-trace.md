@@ -34,6 +34,8 @@ The mock's D4 send log shows that each generic callback first sends `EpsonLocalR
 
 An optional offline mock response of invented `HR:200`, `RequestID:0`, and `ChID:1` advanced the empty POSTs into `EPSON-NW-DOWNCONTENT1`; the next D4 command failed and HTTP returned 500. This supports a two-stage Linux-to-controller flow. It is not evidence of a real printer accepting those values or any firmware body.
 
+Using that same synthetic reply, a 19-byte test body sent to the longer URI appeared byte-for-byte in the emulator's EPIDC send log after a D4 length header. This confirms that the **generic handler** can relay body bytes through the Linux IPC layer in this activation flow. The mock's later D4 send failed, and the physical printer received no test body. The real controller's authorization, RCX format check, and signature decision remain unknown.
+
 The trace identifies the D4 controller-facing IPC boundary, but not the controller handler for the firmware POST, its payload handling, or where signature verification occurs. The signed RCX test shows that a payload edit invalidates its existing ECDSA signature. A route-table entry and relay path therefore do not establish a way to install modified firmware.
 
 ## One live empty-request observation
