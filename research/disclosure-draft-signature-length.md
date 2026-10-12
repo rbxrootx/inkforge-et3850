@@ -1,6 +1,6 @@
 # Draft for vendor triage: XB22Q5 controller package reader can skip ECDSA finalization
 
-**Status:** Offline finding in extracted ET-3850 XB22Q5 controller ARM code. The corrected CROM mapping connects the LAN POST's first-stage `GetRequestID` request to a ROM selector, but does not connect the later body stream to this reader. Earlier validation and physical update impact have not been demonstrated. This draft has not been submitted.
+**Status:** Offline finding in extracted ET-3850 XB22Q5 controller ARM code. The corrected CROM mapping now connects the LAN POST's first-stage `GetRequestID` request through ROM1 selection, a channel-1 body read, and the package receiver that calls this reader. The live controller reply, any earlier verifier, and physical update impact have not been demonstrated. This draft has not been submitted.
 
 ## Affected image and key behavior
 
@@ -19,5 +19,7 @@ An offline modified Wi-Fi image also recalculates the affected large-body 16-bit
 ## Security question and suggested fix
 
 If a production update route hands untrusted RCX bytes to this reader without an earlier full-package signature check, this control flow could accept altered firmware despite the P-256 signature. A separate first-IPL path sets its stream state to `2` after a valid first record (`0x266a4` / `0x26898`) when a memory-mapped mode byte at `0x82c00000` equals `2`; its finalizer at raw offset `0x9614` then rejects a positive remaining-byte count before its own P-256 decision. A route passing through that finalizer in mode `2` would stop this candidate. The live mode byte, route order, and flash commit remain unproved, so device-level severity is not assigned.
+
+The [hash-checked controller chain](../scripts/inspect_controller_update_chain.py) recovers the callback table from the first IPL's startup copy descriptor. ROM1 callback `0x12` queues the package source, while callback `0x11` supplies a read function that calls controller D4 channel `1`; the package source later queues the receiver that invokes this reader. This raises confidence that the decoded code path is relevant to the network update, but it does not substitute for observing an accepted transfer on the test device.
 
 Require signed-stream state `verified` and a zero remaining-byte count before the package reader reports success or commits staged content. Reject declared lengths that disagree with the complete three-record payload. Authenticate the full package before staging or flashing any record. Test both a length that matches the three records and a length one byte larger, including an appended trailing byte.
