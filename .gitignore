@@ -1,0 +1,12 @@
+# Epson firmware and extracted files are intentionally excluded.
+data/
+*.exe
+*.efu
+*.rcx
+*.img
+*.squashfs
+*.pem
+*.key
+*.log
+__pycache__/
+.venv/
