@@ -17,6 +17,8 @@ SQUASHFS_OFFSET = 0x1197112
 SQUASHFS_USED = 2630538
 SIGN_OFFSET = 0x112
 PAYLOAD_OFFSET = SIGN_OFFSET + 4096
+IPL0_CODE_OFFSET = 0x4112
+IPL0_FINALIZER_BRANCH = IPL0_CODE_OFFSET + 0x97D0
 
 
 def records(image: bytes, trailing_bytes: int = 0):
@@ -58,6 +60,8 @@ def main():
     parser.add_argument('output_rcx', type=Path)
     parser.add_argument('--append-byte', action='store_true',
                         help='append one byte and increase unsigned Z_1 size to match declared length')
+    parser.add_argument('--patch-ipl-finalizer', action='store_true',
+                        help='offline control: redirect the first IPL positive-length rejection branch')
     args = parser.parse_args()
     if args.original_rcx.resolve() == args.output_rcx.resolve():
         parser.error('output must differ from original')
@@ -81,6 +85,11 @@ def main():
         parser.error('replacement SquashFS does not fit original slot')
     candidate = bytearray(original)
     candidate[SQUASHFS_OFFSET:SQUASHFS_OFFSET + SQUASHFS_USED] = replacement[:used].ljust(SQUASHFS_USED, b'\0')
+    if args.patch_ipl_finalizer:
+        instruction = struct.unpack_from('<I', candidate, IPL0_FINALIZER_BRANCH)[0]
+        if instruction != 0x1A000007:
+            raise ValueError('unexpected first IPL finalizer branch instruction')
+        struct.pack_into('<I', candidate, IPL0_FINALIZER_BRANCH, 0x1A000009)
     changed_records = []
     for pos, header, _, b in records(candidate):
         second_sum = sum(b) & 0xffff
@@ -114,6 +123,7 @@ def main():
     print('replacement_squashfs_used', used)
     print('declared_payload_length', declared, '->', declared + 1)
     print('trailing_bytes', trailing)
+    print('first_ipl_finalizer_branch_patch', args.patch_ipl_finalizer)
     print('recomputed_record_digests', changed_records)
     print('record_checks', list(record_integrity(candidate, trailing)))
     print('No printer contact was made.')
