@@ -18,6 +18,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
 - Traced a possible ENPC hostname-to-DHCP shell path. The authenticated network configuration session and same-value write work on the live printer. The configuration-scope transition and command execution remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
 - Traced the setup restore archive parser. It passes record filenames to `open()` with truncate flags after a CRC32 check, but the data currently comes through a controller event and no LAN injection path has been shown. See [setup restore parser](research/setup-restore-parser.md).
+- Confirmed a read-only Epson Remote Mode status command over the printer's private SNMP OID subtree. This shows a network controller command tunnel, but no setup restore command through it. The [status probe](scripts/probe_remote_status.py) prints only response metadata.
 
 See [firmware layout](research/firmware-layout.md), [network surface](research/network-surface.md), [administrator API and URL inventory](research/admin-api-inventory.md), and [vulnerability notes](research/vulnerabilities.md).
 
