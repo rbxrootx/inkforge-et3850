@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Decode the two route-name selections in XB22Q5 update preparation.
+"""Decode two HTTP service route-name selections in XB22Q5 nwsoc.
 
 The lists are operands of strcmp calls in nwsoc at 0x16de88 and 0x16f51c.
 They do not establish which handler matches a live HTTP request.
