@@ -8,7 +8,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Rehosted the ARM `nwsoc` application under QEMU. It reaches the internal EPIDC/D4 controller handshake, then stops before Wi-Fi initialization.
 - Identified a candidate change to the Realtek 8723DU module arguments: `rtw_power_mgnt=1 rtw_enusbss=1` to `0,0`. **This has not been validated as a fix.** The loader can also select an 8821CU driver, and the test printer's actual USB product identifier is unknown.
 - Found a boot hook in the extracted firmware: `/opt/nwsoc_data/ExtBoot`, executed before `nwsoc`. No verified network method to write this hook has been found.
-- Confirmed that the official updater binary contains a network transport and host-side firmware signature verification. A modified RCX is not currently installable.
+- Traced the updater's network POST selection and SHA-256/ECDSA P-256 host-side signature gate, and mapped the RCX's 4096-byte signature block. A modified RCX is not currently installable. See [the updater signature trace](research/updater-signature.md).
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
 - Traced a possible ENPC hostname-to-DHCP shell path. The authenticated network configuration session and same-value write work on the live printer. The configuration-scope transition and command execution remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
 
@@ -29,6 +29,12 @@ python scripts/inventory_endpoints.py path/to/nwsoc path/to/EPFWUPD.exe
 ```
 
 The script prints file offsets. For this `nwsoc` Ghidra project, virtual addresses are file offsets plus `0x10000`.
+
+To check the signed segment layout of a separately obtained RCX without sending data to the printer:
+
+```powershell
+python scripts/inspect_signature_block.py path/to/FWCJ61TL.rcx
+```
 
 ## Reproduce offline extraction
 

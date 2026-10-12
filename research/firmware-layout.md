@@ -4,6 +4,8 @@ The official `FWCJ61TL_XB22Q5.exe` is a self-extracting ZIP containing `FWCJ61TL
 
 The first filesystem has Linux 4.4.27 boot scripts and kernel modules. The second has `/opt/nwsoc/nwsoc`, an ARM EABI/uClibc network application, plus the Realtek Wi-Fi driver `8723du.ko` and its firmware blob.
 
+The RCX also has a 4096-byte `EPSONSIGNXB20d` block at offset `0x112`, followed by a payload whose length matches the block's declared 40,603,648 bytes. The Windows updater contains SHA-256/ECDSA P-256 verification code. See [the signature trace](updater-signature.md).
+
 The extracted boot path is:
 
 1. `/root/PreBoot` runs `/etc/init.d/S00fsmount`, which mounts JFFS2 `/dev/mtdblock4` at `/opt/nwsoc_data`.
