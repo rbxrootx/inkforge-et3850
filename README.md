@@ -12,7 +12,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 - Reproduced Epson's already disclosed SNMP/default-password issue on the test printer, without storing its serial or password. Traced the certificate import handler; no arbitrary file write was established.
 - Traced a possible ENPC hostname-to-DHCP shell path. The authenticated network configuration session and same-value write work on the live printer. The configuration-scope transition and command execution remain unverified. See [ENPC/DHCP lead](research/enpc-dhcp-lead.md).
 
-See [firmware layout](research/firmware-layout.md), [network surface](research/network-surface.md), and [vulnerability notes](research/vulnerabilities.md).
+See [firmware layout](research/firmware-layout.md), [network surface](research/network-surface.md), [administrator API and URL inventory](research/admin-api-inventory.md), and [vulnerability notes](research/vulnerabilities.md).
 
 For a read-only ENPC UDP 3289 reachability check:
 
@@ -21,6 +21,14 @@ python scripts/probe_enpc_readonly.py PRINTER_IP
 ```
 
 This `N` request only produces a status reply; it cannot determine whether ENPC configuration writes are authenticated.
+
+To inspect endpoint-shaped strings in local copies of the extracted ARM program and Windows updater without contacting the printer:
+
+```powershell
+python scripts/inventory_endpoints.py path/to/nwsoc path/to/EPFWUPD.exe
+```
+
+The script prints file offsets. For this `nwsoc` Ghidra project, virtual addresses are file offsets plus `0x10000`.
 
 ## Reproduce offline extraction
 
