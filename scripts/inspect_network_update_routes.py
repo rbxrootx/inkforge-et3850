@@ -7,7 +7,10 @@ from pathlib import Path
 
 
 EXPECTED_SHA256 = "70728f452c5358c4ef04ec39354c4656c42fa6e662af675ce88d161f05949ac0"
-IMAGE_BASE = 0x10000
+TEXT_VA_DELTA = 0x10000
+DATA_VA_DELTA = 0x20000
+DATA_FILE_START = 0x671000
+DATA_FILE_END = 0x6A28A8
 PATHS = (
     b"/FIRMWAREUPDATE",
     b"/FIRMWAREUPDATE/ADMINCHECK",
@@ -23,11 +26,12 @@ def entries(blob: bytes):
         string_offset = blob.find(path + b"\0")
         if string_offset < 0:
             raise ValueError(f"missing path: {path!r}")
-        pointer = struct.pack("<I", string_offset + IMAGE_BASE)
+        pointer = struct.pack("<I", string_offset + TEXT_VA_DELTA)
         start = 0
         while (hit := blob.find(pointer, start)) >= 0:
             start = hit + 1
-            if hit < 0x14 or hit + 0x18 > len(blob):
+            record_offset = hit - 0x14
+            if not DATA_FILE_START <= record_offset < DATA_FILE_END - 0xB8:
                 continue
             method = blob[hit - 0x14 : hit - 0x10].rstrip(b"\0")
             if method not in (b"GET", b"POST"):
@@ -36,7 +40,7 @@ def entries(blob: bytes):
             port = struct.unpack_from("<I", blob, hit + 0x14)[0]
             if port not in (80, 443):
                 raise ValueError(f"unexpected port at 0x{hit:x}: {port}")
-            results.append((hit + IMAGE_BASE, method.decode(), path.decode(), port, callback))
+            results.append((record_offset + DATA_VA_DELTA, method.decode(), path.decode(), port, callback))
     return sorted(results)
 
 

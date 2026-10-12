@@ -4,6 +4,8 @@ The official `FWCJ61TL_XB22Q5.exe` is a self-extracting ZIP containing `FWCJ61TL
 
 The first filesystem has Linux 4.4.27 boot scripts and kernel modules. The second has `/opt/nwsoc/nwsoc`, an ARM EABI/uClibc network application, plus the Realtek Wi-Fi driver `8723du.ko` and its firmware blob.
 
+The `nwsoc` ELF has two load segments with different virtual-address shifts. Executable code and most string literals map file offset `0x000000` to virtual address `0x010000`; writable route-table data maps file offset `0x671000` to virtual address `0x691000`. Thus code and string offsets use `VA - 0x10000`, while route-record offsets in the second segment use `VA - 0x20000`. The route inventory scripts apply the second mapping when printing record addresses.
+
 The RCX also has a 4096-byte `EPSONSIGNXB20d` block at offset `0x112`, followed by a payload whose length matches the block's declared 40,603,648 bytes. Its signature verifies against a public key embedded in the same RCX. The Windows updater contains generic SHA-256/ECDSA P-256 verification code, but its compiled key table omits XB20. See [the signature trace](updater-signature.md).
 
 The extracted boot path is:
