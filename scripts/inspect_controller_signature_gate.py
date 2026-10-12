@@ -18,6 +18,7 @@ CONTROLLER_BASE = 0x45670000
 HEADER_ADDRESS = 0x45778EE8
 LITERALS_ADDRESS = 0x45778F00
 IPL_KEY_DESCRIPTOR = 0x5628C
+VERIFY_WRAPPER_CMP = 0x45768CF8
 
 
 def main() -> None:
@@ -53,6 +54,9 @@ def main() -> None:
     direct_key_literals = controller.count(struct.pack("<I", key_source))
     if direct_key_literals != 1:
         raise ValueError(f"unexpected direct key-address literal count: {direct_key_literals}")
+    wrapper_at = VERIFY_WRAPPER_CMP - CONTROLLER_BASE
+    if controller[wrapper_at : wrapper_at + 8] != struct.pack("<II", 0xE3500001, 0x13A00000):
+        raise ValueError("signature wrapper no longer compares result with 1 and clears failures")
     key = ipl[source : source + 64]
     if key != ipl[0x7010 : 0x7050]:
         raise ValueError("the two first-IPL key copies differ")
@@ -64,6 +68,7 @@ def main() -> None:
     print(f"Controller key destination: 0x{key_dest:08x}")
     print(f"Controller signature destination: 0x{signature_dest:08x}")
     print(f"Direct key-address literals in decoded segment: {direct_key_literals}")
+    print("Signature wrapper accepts only result 1; other results become 0.")
     print("This is a static key-source check, not proof of a live network update path.")
 
 
