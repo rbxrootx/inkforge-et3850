@@ -6,7 +6,7 @@ Research into the ET-3850 network firmware and a possible Wi-Fi power-management
 
 - Extracted Epson's official XB22Q5 recovery package. The live printer reports `05.15.XB22Q5`.
 - Compared an older official XB05O7 package with XB22Q5. The embedded signing key, suspend scripts, Realtek firmware blob, Wi-Fi module arguments, and HTTP/API-shaped string set are stable; the 8723DU kernel module changed. See [the release comparison](research/official-release-comparison.md).
-- Rehosted the ARM `nwsoc` application under QEMU. It reaches the internal EPIDC/D4 controller handshake, then stops before Wi-Fi initialization.
+- Rehosted the ARM `nwsoc` application under QEMU. Scratch-only ioctl stubs advance it through EPIDC channel open and message send; it now waits for the physical controller's `EPSON-INFORMATION` reply before Wi-Fi initialization. See [the application rehost trace](research/application-rehost.md).
 - Identified a candidate change to the Realtek 8723DU module arguments: `rtw_power_mgnt=1 rtw_enusbss=1` to `0,0`. **This has not been validated as a fix.** The executable has 8821CU loader strings, but direct SquashFS listings contain only the 8723DU module and firmware. The test printer's actual USB product identifier is unknown.
 - Built a second offline candidate that changes those arguments in all five 8723DU and 8821CU load commands. The script checks the exact source hash, command counts, output length, and changed-byte count. See [the custom firmware status](research/custom-firmware-status.md).
 - Found a boot hook in the extracted firmware: `/opt/nwsoc_data/ExtBoot`, executed before `nwsoc`. No verified network method to write this hook has been found.

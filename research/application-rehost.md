@@ -1,0 +1,9 @@
+# ARM application rehost: controller boundary
+
+The ET-3850 network application (`nwsoc`) starts under QEMU ARM user mode in an extracted Linux root filesystem. This is an **offline** test; it has no connection to the printer and does not validate a flash or a Wi-Fi fix.
+
+At startup, the application opens `/dev/epidc0` and issues ioctl `0x400cfe00` to open an EPIDC channel. QEMU user mode rejected that device-specific ioctl before the CUSE mock saw it. A scratch-only patch to the extracted uClibc `ioctl` entry returned success, after which `nwsoc` reached the first D4 controller message. The send operation uses ioctl `0xc018fe02`; its arguments include a buffer pointer, requested byte count, and a returned byte count at offset 8. A zero-return stub left the returned count unset and caused the `Sent too much data` error. A second scratch-only stub copied the requested count into that returned field. The application then got as far as receiving the `EPSON-INFORMATION` system-command reply.
+
+The receive operation uses ioctl `0xc018fe03` and expects a real controller packet and status. The current mock cannot synthesize that reply, so `D4_GetDeviceID` returns `-4` and `prInit` fails before the Wi-Fi module loader runs. The scratch files `work/emul/patch_libc_ioctl_ack.py` and `work/emul/run_mock_trace.sh` reproduce this boundary in the local workspace. Neither patch is part of the custom RCX candidate.
+
+The key reverse-engineered functions in the XB22Q5 `nwsoc` are `0x473f58` (open channel), `0x4740d8` (send), `0x474168` (receive), and `0x4260d8` (startup controller configuration). This gives a focused target for a controller-protocol emulator. The current observation only proves that the application can reach its first controller exchange; it does not prove that the modified `rtw_power_mgnt` or `rtw_enusbss` arguments are executed.
