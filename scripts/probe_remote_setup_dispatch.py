@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Probe the live ET-3850's remote `||` dispatcher without changing bytes.
 
-The default requests have an invalid J6 checksum, so the handler rejects them
-before subcommand dispatch. With --zero-copy, a valid J6 `p` envelope carries
+The default requests have invalid command check bytes after the fixed `J6`
+access bytes, so the handler rejects them before subcommand dispatch. With
+--zero-copy, a matching `p` envelope carries
 a type-2 operation with length zero. The decoded controller copy routine then
 receives a zero-byte length; it cannot alter the setup buffer.
 With --zero-read, the analogous `q` envelope requests zero bytes.

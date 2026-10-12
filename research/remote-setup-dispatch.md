@@ -10,7 +10,8 @@ that a setup archive can be written or restored.
 
 ## Static command chain
 
-The `||` handler checks a `J6` header. Its third byte selects an inner command;
+The `||` handler requires two fixed access bytes, ASCII `J6`. Its third byte
+selects an inner command;
 the fourth must complement it, and a one-bit rotation of the fifth must equal
 it. The same handler has a state gate: when its third call argument is `4`, a
 controller state word at `0x43edb930` must be `1`. The value of that word on the
@@ -48,9 +49,9 @@ a little-endian body length, and body bytes. It sent three cases:
 | Case | Reply bytes | Interpretation |
 | --- | --- | --- |
 | Unknown `zz`, invalid `J6` | `00 7a 7a 3a 3b 0c` | Generic `zz:;` reply. |
-| `||`, invalid `J6` checksum | `00 7c 7c 3a 30 30 3a 4e 41 3b 0c` | Command-specific `||:00:NA;` rejection. |
-| `||`, valid `J6` with `p` type `2` and zero data bytes | `00 7c 7c 3a 37 30 3a 4e 41 3b 0c` | `||:70:NA;` rejection. No bytes were supplied for copying. |
-| `||`, valid `J6` with `q` type `2` and zero data bytes | `00 7c 7c 3a 37 31 3a 4e 41 3b 0c` | `||:71:NA;` rejection. No bytes were requested for reading. |
+| `||`, invalid command check bytes after `J6` | `00 7c 7c 3a 30 30 3a 4e 41 3b 0c` | Command-specific `||:00:NA;` rejection. |
+| `||`, matching check bytes with `p` type `2` and zero data bytes | `00 7c 7c 3a 37 30 3a 4e 41 3b 0c` | `||:70:NA;` rejection. No bytes were supplied for copying. |
+| `||`, matching check bytes with `q` type `2` and zero data bytes | `00 7c 7c 3a 37 31 3a 4e 41 3b 0c` | `||:71:NA;` rejection. No bytes were requested for reading. |
 
 These responses show dispatch and rejection. The `NA` on the zero-byte cases may
 come from the outer state gate or a later length check; the probe alone does
