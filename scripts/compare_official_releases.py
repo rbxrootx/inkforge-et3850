@@ -20,6 +20,11 @@ def inspect(path: Path) -> dict:
     key = image[0xB122 : 0xB122 + 64]
     if len(key) != 64:
         raise ValueError(f"{path}: embedded public key missing")
+    boot_key = image[0x143112 : 0x143112 + 64]
+    if boot_key != key:
+        raise ValueError(f"{path}: first IPL key copy differs from RCX key")
+    if image[0xE38E : 0xE397] != b"EPSONSIGN":
+        raise ValueError(f"{path}: first IPL signature parser marker missing")
     return {
         "image": image,
         "sha256": hashlib.sha256(image).hexdigest(),
@@ -27,6 +32,7 @@ def inspect(path: Path) -> dict:
         "marker": marker,
         "signature": image[marker + 32 : marker + 96],
         "key": key,
+        "boot_key": boot_key,
     }
 
 
@@ -41,6 +47,7 @@ def main() -> None:
         print(label, "payload SHA-256", record["payload_sha256"])
         print(label, "signature block", hex(record["marker"]))
         print(label, "embedded key SHA-256", hashlib.sha256(record["key"]).hexdigest())
+        print(label, "first IPL key copy matches:", record["boot_key"] == record["key"])
     print("same embedded public key:", old["key"] == new["key"])
     print("same signature:", old["signature"] == new["signature"])
     start, end = 0x1112, 0x11112

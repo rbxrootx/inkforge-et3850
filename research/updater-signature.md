@@ -20,6 +20,12 @@ The older official XB05O7 recovery package also contains an `EPSONSIGNXB20d` RCX
 
 The updater's compiled ECDSA key table at `0x660764` contains filename patterns ranging across FY14–FY21. None names the XB20 family, and none of its listed public keys verifies this RCX signature. [`check_updater_key_table.py`](../scripts/check_updater_key_table.py) reproduces both checks against the matching updater and RCX. Therefore the decompiled host verification path cannot yet be claimed as the gate for this ET-3850 package. Another verification path or device-side enforcement may apply.
 
+## First IPL boot-image findings
+
+The first `EPSON IPL` segment contains a second copy of the same 64-byte P-256 public key at RCX offset `0x143112`. This copy matches the key at `0xB122` in both XB05O7 and XB22Q5. The segment's ARM code begins 0x3000 bytes after its header; in a raw ARM disassembly, the key is at offset `0x13F000`. A startup copy descriptor at offset `0x5628C` names this source and a 4096-byte transfer to address `0x4FB26800`. This is evidence that the boot image makes the key available at runtime, not proof that the live printer treats it as an immutable trust anchor.
+
+The same boot image has an `EPSONSIGN` parser at code offset `0xA1B8`. It checks a signature header and copies a 64-byte signature; its caller at `0x25D2C` initializes a SHA-256 context after a recognized header. The initializer loads the eight standard SHA-256 initial words. OpenSSL ECDSA strings are also present in this image. The precise signature-verification call, rejection branch, and relationship to network updates have not been mapped yet. The image is a stronger lead for printer-side verification than the Windows updater's generic key table, but it does not establish that a self-signed RCX will be accepted or rejected.
+
 ## Remaining installation questions
 
 1. Trace the HTTP type assignment and model feature selection to learn whether the ET-3850 ever uses the generic network POST path.
@@ -30,3 +36,5 @@ The updater's compiled ECDSA key table at `0x660764` contains filename patterns 
 No new vulnerability is confirmed by the existence of these endpoints or the signature block. No firmware bytes were sent to the printer in this trace.
 
 An offline negative control changed the final byte of the XB22Q5 RCX payload while leaving its signature intact; `verify_rcx_signature.py` exited with `Signature invalid for selected payload and key`. The check is reproducible without any device contact.
+
+An opposite offline control changed that payload byte, replaced the embedded P-256 public key with a newly generated key, and signed the changed payload with the matching ephemeral private key. `verify_rcx_signature.py` then reported a valid signature. The private key was not saved and the control image was not sent to the printer. This demonstrates why an embedded-key-only verification result cannot establish the printer's trust anchor or a custom-firmware installation path.
