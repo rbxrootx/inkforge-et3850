@@ -32,3 +32,5 @@ The candidate is an offline research artifact. There is no install command in th
 ## Reporting
 
 The [vulnerability notes](research/vulnerabilities.md) distinguish known Epson advisories from research leads. This repository currently contains **no new confirmed vulnerability** and no submission to Epson. A report will require a reproducible, device-specific security impact and a minimal proof that does not expose printer credentials.
+
+The [disclosure template](research/disclosure-template.md) is ready if a new finding is confirmed.
