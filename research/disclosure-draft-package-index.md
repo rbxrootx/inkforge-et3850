@@ -12,16 +12,18 @@ At mapped address `0x457779e0`, the `EPSON IPLJ6XB` header parser reads the seco
 
 The package reader at `0x45778404` reads the first 4096-byte payload header and calls this parser before its signed-stream routine at `0x45778264` has hashed the declared 40,603,648-byte payload and checked ECDSA. Modifying one descriptor byte makes the RCX signature fail against the existing IPL key, while isolated execution of the parser still performs the out-of-range writes. This is a parser-order and bounds-check issue in the decoded update path, not proof that the network update interface reaches it.
 
+The reader then calls `0x457783b0`, which accepts only IDs `0` through `5`. For ID `0x25`, it rejects the record **after** the out-of-range writes and before reading that record's body. Thus the observed key-buffer overlap has not produced a signing-key bypass or a successful update.
+
 ## Offline reproduction
 
 Run [`emulate_controller_header_index.py`](../scripts/emulate_controller_header_index.py) with the separately obtained RCX and its decoded controller segment. The script checks both SHA-256 hashes, invokes the actual ARM parser in Unicorn, and reports these controls:
 
-| Descriptor ID | Parser result | Write beyond 37-entry tables | Copied-key buffer overlap |
-| --- | ---: | --- | --- |
-| `0x24` | 1 | No | No |
-| `0x25` | 1 | Yes | Yes |
-| `0xfe` | 1 | Yes | No |
-| `0xff` | 0 | No | No |
+| Descriptor ID | Parser result | Type gate result | Write beyond 37-entry tables | Copied-key buffer overlap |
+| --- | ---: | ---: | --- | --- |
+| `0x24` | 1 | 0 | No | No |
+| `0x25` | 1 | 0 | Yes | Yes |
+| `0xfe` | 1 | 0 | Yes | No |
+| `0xff` | 0 | Not reached | No | No |
 
 No printer packet, modified firmware image, administrator credential, serial number, or proprietary binary is included in this repository.
 

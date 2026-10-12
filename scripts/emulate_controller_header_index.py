@@ -19,6 +19,7 @@ SEGMENT_SHA256 = "7bdc1c0562adda78bb541cbadac1ac104367c0b839262ea1f51d38e07a54e4
 RCX_SHA256 = "103c9514e57f143f2619abcd280bd4d0926abf5370e03d28753a334ae02cd675"
 BASE = 0x45670000
 ENTRY = 0x457779e0
+TYPE_GATE = 0x457783b0
 TABLE = 0x45c65a88
 META = 0x45d65d6c
 KEY_BUFFER = 0x45d660e4
@@ -32,7 +33,7 @@ RESULT = 0x13000000
 STOP = 0x14000000
 
 
-def run_case(image: bytes, original_header: bytes, index: int) -> tuple[int, int, list[tuple[int, int]]]:
+def run_case(image: bytes, original_header: bytes, index: int) -> tuple[int, int, int | None, list[tuple[int, int]]]:
     header = bytearray(original_header)
     struct.pack_into("<H", header, 0x38, index)
     cpu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
@@ -64,7 +65,21 @@ def run_case(image: bytes, original_header: bytes, index: int) -> tuple[int, int
     cpu.emu_start(ENTRY, STOP, count=100000)
     if cpu.reg_read(UC_ARM_REG_PC) != STOP:
         raise RuntimeError(f"parser did not return: pc={cpu.reg_read(UC_ARM_REG_PC):#x}")
-    return cpu.reg_read(UC_ARM_REG_R0), cpu.mem_read(RESULT, 1)[0], writes
+    parse_result = cpu.reg_read(UC_ARM_REG_R0)
+    parsed_index = cpu.mem_read(RESULT, 1)[0]
+    gate_result = None
+    if parse_result == 1:
+        # Mirror the package reader: it reloads the indexed table byte and
+        # checks it with FUN_457783b0 before consuming the record's body.
+        table_id = cpu.mem_read(TABLE + parsed_index * TABLE_RECORD_SIZE, 1)[0]
+        cpu.reg_write(UC_ARM_REG_R0, table_id)
+        cpu.reg_write(UC_ARM_REG_R1, RESULT + 4)
+        cpu.reg_write(UC_ARM_REG_LR, STOP)
+        cpu.emu_start(TYPE_GATE, STOP, count=10000)
+        if cpu.reg_read(UC_ARM_REG_PC) != STOP:
+            raise RuntimeError("type gate did not return")
+        gate_result = cpu.reg_read(UC_ARM_REG_R0)
+    return parse_result, parsed_index, gate_result, writes
 
 
 def main() -> None:
@@ -85,17 +100,20 @@ def main() -> None:
     if not original_header.startswith(b"EPSON IPLJ6XB"):
         parser.error("IPL header is not at the expected position")
 
-    for index in (0, 3, 0x24, 0x25, 0xfe, 0xff):
-        result, parsed_index, writes = run_case(image, original_header, index)
+    for index in (0, 1, 2, 3, 0x24, 0x25, 0xfe, 0xff):
+        result, parsed_index, gate_result, writes = run_case(image, original_header, index)
         table_oob = [a for a, _ in writes if TABLE + TABLE_RECORDS * TABLE_RECORD_SIZE <= a < META]
         meta_oob = [a for a, _ in writes if a >= META + TABLE_RECORDS * META_RECORD_SIZE]
         key_overlap = [a for a, size in writes if a < SIGNATURE_BUFFER and a + size > KEY_BUFFER]
         print(f"index={index:#04x} result={result} parsed={parsed_index:#04x} "
+              f"type_gate={gate_result if gate_result is not None else 'not_reached'} "
               f"table_write={hex(writes[0][0]) if writes else 'none'} "
               f"table_past_37={bool(table_oob)} meta_past_37={bool(meta_oob)} "
               f"key_buffer_overlap={bool(key_overlap)}")
         if index == 0x25 and not (result == 1 and table_oob and meta_oob and KEY_BUFFER in key_overlap):
             raise RuntimeError("expected out-of-range write was not reproduced")
+        if index == 0x25 and gate_result != 0:
+            raise RuntimeError("out-of-range record unexpectedly passed the reader's type gate")
         if index == 0xff and (result != 0 or writes):
             raise RuntimeError("sentinel control did not reject index 0xff")
 
