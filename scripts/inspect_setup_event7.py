@@ -14,6 +14,8 @@ REMOTE_ST = 0x45B7C2C0
 REMOTE_PIPE = 0x45B7C300
 J6_P = 0x45B7C408
 J6_Q = 0x45B7C410
+J6_STATE_PTR = 0x459B0C88
+J6_TABLE_PTR = 0x459B0C8C
 
 
 def word(image: bytes, address: int) -> int:
@@ -70,6 +72,10 @@ def main() -> None:
             ord(letter) | (min_length << 8), handler
         )
         print(f"J6 subcommand {letter!r} -> 0x{handler:08x}")
+
+    assert word(image, J6_STATE_PTR) == 0x43EDB914
+    assert word(image, J6_TABLE_PTR) == 0x45B7C398
+    print("J6 state base 0x43edb914, inner table base 0x45b7c398")
 
     print("Static table entries alone do not establish acceptance of a setup write.")
 
