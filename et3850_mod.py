@@ -70,7 +70,7 @@ def main():
     if args.command == "status":
         result = {"usb": usb_devices(), "queues": printer_queues(),
                   "winusb": usb_bulk_interface(),
-                  "update_transport": "partial signed-stock transfer only; no custom image sent"}
+                  "update_transport": "signed-stock payload and update-end acknowledged; no custom image sent"}
     elif args.command == "usb-status":
         from usb_d4 import read_identity
         result = read_identity(args.winusb)
