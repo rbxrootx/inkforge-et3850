@@ -23,6 +23,12 @@ Segment 0 is 5,686,304 bytes, SHA-256 `7bdc1c0562adda78bb541cbadac1ac104367c0b83
 
 The observed `IPPRes:` producer and base64-only consumer do not fit: the prefix contains `:`, which fails the consumer's first-32-byte check. This may be an unused path, a build-time mismatch, or an analysis gap. It is **not** a demonstrated way to send setup data from the LAN. The exact role of the `SetupData:` request and its internal peer remains open.
 
+## Internal `Method:` / `URI:` parser
+
+A separate ARM routine beginning at `0x45912740` parses records with inline `Method:` and `URI:` labels. It recognizes `POST`, `GET`, and `HEAD`, strips a query suffix from the URI, and dispatches to route handlers. One path queues controller event group `0x76`, subcommand `8`, for a POST URI prefix. This is structurally consistent with a Linux-to-controller request relay, but the prefix's runtime value and the event's ultimate handler have not been established. Neither a direct ARM branch nor an exact 32-bit pointer to `0x45912740` was found in the decoded segment. Its presence therefore does not prove the live HTTP firmware upload reaches it.
+
+The nearby decoded data contains `/DOWN/FIRMWAREUPDATE/`, but no direct 32-bit pointer to its first character was found. The `Method:` / `URI:` parser and that path string cannot be joined solely by their proximity in this image. An active caller, route-table selection, and signature decision remain necessary before testing a modified RCX on the printer.
+
 The additional `0x0b` dispatch finding gives another reason not to treat the `SetupData:` request as a working update channel in this build: its queued command currently selects a loop-back entry. The image also contains `/DOWN/FIRMWAREUPDATE/` and `EpsonLocalReq:CancelDOWNCONTENT` strings, but neither string alone links the Linux HTTP relay to a flash writer or a signature decision. The `/DOWN/FIRMWAREUPDATE/` bytes start at `0x45ae594f`; no exact 32-bit pointer to that address was found in this segment. A nearby literal used by `0x4590d4d4` points to the preceding NUL byte at `0x45ae594e`, so that routine does not establish use of the path.
 
 The [isolated ARM emulation](../scripts/emulate_setup_gate.py) runs the actual `0x4591465c` instructions from the hash-checked controller segment. It stops before the internal request call. An `IPPRes:200` prefix and 31 base64 characters both return before that call; 32 base64 characters reach it. This verifies the input gate, but it does not emulate the controller OS or prove any network entry point.
