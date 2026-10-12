@@ -7,6 +7,7 @@ from pathlib import Path
 import struct
 
 EXPECTED_SHA256 = "7bdc1c0562adda78bb541cbadac1ac104367c0b839262ea1f51d38e07a54e416"
+IPL0_SHA256 = "bf046b5bd5f5499c377bcbcb7b27aeb7d298cdf897600123f3f613bb8d2b7903"
 BASE = 0x4566FF74
 COMMAND_TABLE = 0x45AE5B04
 EVENT_SWITCH = 0x45914F14
@@ -36,6 +37,8 @@ def cstring(image: bytes, address: int) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("controller", type=Path, help="decoded XB22Q5 controller CROM segment 0")
+    parser.add_argument("--ipl0-code", type=Path,
+                        help="raw XB22Q5 first IPL code; checks the copied J6 gate's initial value")
     args = parser.parse_args()
     image = args.controller.read_bytes()
     actual = hashlib.sha256(image).hexdigest()
@@ -76,6 +79,20 @@ def main() -> None:
     assert word(image, J6_STATE_PTR) == 0x43EDB914
     assert word(image, J6_TABLE_PTR) == 0x45B7C398
     print("J6 state base 0x43edb914, inner table base 0x45b7c398")
+
+    if args.ipl0_code:
+        ipl = args.ipl0_code.read_bytes()
+        if hashlib.sha256(ipl).hexdigest() != IPL0_SHA256:
+            parser.error("unexpected first IPL code SHA-256")
+        source, destination, length = struct.unpack_from("<III", ipl, 0x56298)
+        assert (source, destination, length) == (0x57004, 0x43E90000, 0x4C844)
+        gate_address = 0x43EDB930
+        assert destination <= gate_address < destination + length
+        gate_offset = source + gate_address - destination
+        initial_gate = struct.unpack_from("<I", ipl, gate_offset)[0]
+        assert initial_gate == 0
+        print(f"copied J6 gate at 0x{gate_address:08x}: initial value {initial_gate} "
+              f"(IPL source offset 0x{gate_offset:x})")
 
     print("Static table entries alone do not establish acceptance of a setup write.")
 

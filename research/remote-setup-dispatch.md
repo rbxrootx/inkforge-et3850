@@ -16,6 +16,13 @@ the fourth must complement it, and a one-bit rotation of the fifth must equal
 it. The same handler has a state gate: when its third call argument is `4`, a
 controller state word at `0x43edb930` must be `1`. The value of that word on the
 live device and the exact meaning of the argument have not been established.
+The first IPL copies a RAM initialization block from its raw offset `0x57004`
+to `0x43e90000`. This block includes `0x43edb930`, whose copied initial value
+is **zero** at raw offset `0xa2934`. Thus the `param_3 == 4` path is closed
+immediately after that copy unless another component changes the state word.
+The current live value remains unknown. The hash-locked
+[`inspect_setup_event7.py`](../scripts/inspect_setup_event7.py) verifies this
+when given both the decoded controller segment and `--ipl0-code`.
 The generic two-letter router at `0x459ae940` passes this argument from a
 queue-`0x0c` event field at offset `+0x12`. The SNMP private-OID callback at
 `0x45988e94` calls `0x45904bf4`/`0x459ae788`, which copies the request into
@@ -70,8 +77,9 @@ zero-byte copy. The live `||:70:NA` therefore points to rejection in the outer
 static path and one live response, not a measured value of the state word. No
 setup archive, firmware bytes, or filename was sent.
 
-Run `python scripts/inspect_setup_event7.py <decoded-controller-segment0>` to
-check the static tables against the hash-locked image. Run
+Run `python scripts/inspect_setup_event7.py <decoded-controller-segment0>
+--ipl0-code <raw-first-ipl-code>` to check the static tables and initial gate
+against hash-locked images. Run
 `python scripts/probe_remote_setup_dispatch.py <printer-ip>` to repeat only the
 invalid-envelope cases; add `--zero-copy` and `--zero-read` to repeat the
 no-change inner cases.
