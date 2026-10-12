@@ -2,6 +2,8 @@
 
 This is a **static research lead**, not a demonstrated network exploit. The code is in the `nwsoc` program extracted from the XB22Q5 ET-3850 recovery image (SHA-256 `70728f452c5358c4ef04ec39354c4656c42fa6e662af675ce88d161f05949ac0`). Ghidra addresses below are virtual addresses; the corresponding binary file offsets are `address - 0x10000`.
 
+The separately decoded [controller CROM trace](controller-crom-trace.md) finds `ReadSetup`, `WriteSetup`, and an internal `SetupData:` message. It does not yet connect any of them to a LAN source for the restore archive.
+
 ## Data flow found in the program
 
 1. The restore service initializer at `0x2158b0` registers controller event callbacks for `READSETUP` (`0x1b`) and `WRITESETUP` (`0x1c`). The latter points at `0x2151b8`.
