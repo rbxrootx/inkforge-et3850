@@ -1,4 +1,4 @@
-"""Private, owner-operated ET-3850 firmware build and install workflow.
+"""Owner-operated ET-3850 firmware build and install workflow.
 
 No Epson image or credentials are bundled. Only the exact XB22Q5 source is
 supported. Build output and password remain outside this code repository.
@@ -18,9 +18,10 @@ import sys
 
 from et3850 import ROOT, SOURCE_SHA256, inspect_firmware, sha256_file
 from et3850_mod import build_candidate
+from workdir import WORK_DIR
 
 SCRIPT = ROOT / "scripts" / "inkforge_repack.sh"
-PRIVATE_WORK = ROOT.parent.parent / "work"
+PRIVATE_WORK = WORK_DIR
 S0 = 0xEA7112
 S1 = 0x1197112
 EXPECTED_S0 = 2008372
@@ -29,8 +30,8 @@ EXPECTED_S1 = 2630538
 
 def private_path(path: Path) -> Path:
     path = path.resolve()
-    if PRIVATE_WORK.resolve() not in path.parents:
-        raise ValueError("firmware outputs and passwords must stay in this project's private work directory")
+    if PRIVATE_WORK.resolve() not in path.parents or ROOT in path.parents:
+        raise ValueError("firmware outputs and passwords must stay in the configured work directory outside the repository")
     return path
 
 

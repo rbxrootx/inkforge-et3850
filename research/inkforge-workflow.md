@@ -1,6 +1,6 @@
-# InkForge ET-3850: owner workbench
+# InkForge workflow
 
-This is the build and control workflow for the ET-3850 on which a custom image and root shell were verified. The code contains the updater acceptance research, but Epson firmware images and owner credentials remain local.
+This workflow targets `05.15.XB22Q5` and requires the owner's stock RCX. The code and research are public; firmware images and passwords are not distributed.
 
 ## Launch the UI
 
@@ -10,7 +10,7 @@ From this directory on Windows:
 python et3850_mod.py gui
 ```
 
-The **PATCH LAB** page accepts the pinned XB22Q5 stock RCX. **BUILD FULL MOD** extracts its two SquashFS images, generates or reuses a private password file in this project's `work/` directory, patches the root login and Wi-Fi files, repacks both filesystems in WSL, and builds an RCX. It writes a matching `.manifest.json` beside the image. It does not contact the printer.
+The **PATCH LAB** page accepts the pinned XB22Q5 stock RCX. **BUILD FULL MOD** extracts its two SquashFS images, generates or reuses a password file in the work directory, patches the root login and Wi-Fi files, repacks both filesystems in WSL, and builds an RCX. It writes a matching `.manifest.json` beside the image. It does not contact the printer. A normal clone uses an `inkforge-work` directory beside the repo; `INKFORGE_WORK_DIR` overrides this path.
 
 The **FLASH PATH** page checks the image and manifest before a USBPRINT D4 transfer. **SEND TO ATTACHED PRINTER** starts an update transfer only after an explicit UI confirmation. The UI reports the transport acknowledgement; use the **SHELL** page after reboot to verify the installed result. A fresh build is not yet device-tested, even though the same code path installed the earlier research candidate.
 
@@ -19,11 +19,12 @@ The **SHELL** page connects to the password-gated port 2323 service on an alread
 ## Command line
 
 ```powershell
-python inkforge.py build ..\..\work\FWCJ61TL.rcx ..\..\work\my-et3850.rcx --password-file ..\..\work\my-password.txt
-python inkforge.py install ..\..\work\my-et3850.rcx
-python inkforge.py install ..\..\work\my-et3850.rcx --send
-python inkforge.py postflight 192.168.0.12 --password-file ..\..\work\my-password.txt
-python et3850_mod.py shell 192.168.0.12 --password-file ..\..\work\my-password.txt
+$work = (Resolve-Path ..\inkforge-work).Path
+python inkforge.py build "$work\FWCJ61TL.rcx" "$work\my-et3850.rcx" --password-file "$work\my-password.txt"
+python inkforge.py install "$work\my-et3850.rcx"
+python inkforge.py install "$work\my-et3850.rcx" --send
+python inkforge.py postflight PRINTER_IP --password-file "$work\my-password.txt"
+python et3850_mod.py shell PRINTER_IP --password-file "$work\my-password.txt"
 ```
 
 The first `install` form is preflight only. `--send` transmits. The builder requires WSL with `unsquashfs`, `mksquashfs`, and `openssl`; WSL root is used to preserve SquashFS device-node metadata. Python needs `cryptography` for the embedded-key signature check, and Python 3.12 or earlier for `telnetlib`.
@@ -37,4 +38,4 @@ The first `install` form is preflight only. `--send` transmits. The builder requ
 - The owner's photo wallpaper is still a research lead; the printer's observed home screen has not shown it.
 - We have no tested recovery procedure for a failed custom install. Preserve the stock RCX and the existing working image in private storage.
 
-The RCX, password, manifest, and extracted Epson files remain in local `work/` and are excluded from Git. The simpler [companion repository](https://github.com/rbxrootx/et3850-mod-lab) has controls for an already modified printer.
+The RCX, password, manifest, and extracted Epson files stay in the local work directory outside Git. The simpler [companion repository](https://github.com/rbxrootx/et3850-mod-lab) has controls for an already modified printer.

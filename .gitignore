@@ -10,3 +10,5 @@ data/
 *.log
 __pycache__/
 .venv/
+work/
+*.manifest.json

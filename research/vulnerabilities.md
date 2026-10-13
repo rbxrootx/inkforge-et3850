@@ -1,6 +1,6 @@
 # Vulnerability tracking
 
-**Live update (2026-10-12):** A modified image with an invalid normal ECDSA signature ran on the owner's physical ET-3850 after an owner-authorized USB update. The custom startup marker, root shell, running executable digest, and Wi-Fi driver parameters provide independent installation evidence. This establishes a firmware acceptance/security-boundary failure on the tested device. The exact live controller path and broader model/version impact remain unproven; keep the reproducible candidate and bypass details in a private vendor report. See [live verification](live-custom-install.md).
+**Live update (2026-10-12):** A modified image with an invalid normal ECDSA signature ran on the owner's physical ET-3850 after an owner-authorized USB update. The custom startup marker, root shell, running executable digest, and Wi-Fi driver parameters provide independent installation evidence. This establishes a firmware acceptance/security-boundary failure on the tested device. The exact live controller path and broader model/version impact remain unproven. See [live verification](live-custom-install.md). This repository is public; no vendor report has been submitted.
 
 | Finding | Evidence | Status | Impact on modification work |
 | --- | --- | --- | --- |
@@ -32,4 +32,4 @@
 
 Promote a research lead to a report only after reproducing it on this firmware version with a minimal proof, identifying the affected route and impact, and showing a reversible test. Do not include the printer's serial number, administrator password, Wi-Fi credentials, or proprietary firmware binaries in a public report.
 
-Epson's [vulnerability disclosure policy](https://www.epson.eu/en_EU/faq/KA-01896) provides the reporting route for a **new, undisclosed** issue. The SNMP/default-password and CSRF issues above already have Epson advisories. The live custom-image acceptance warrants a private vendor report; its exact root cause and affected product range still need careful qualification. No report has been sent.
+Epson's [vulnerability disclosure policy](https://www.epson.eu/en_EU/faq/KA-01896) provides the reporting route for a new issue. The SNMP/default-password and CSRF issues above already have Epson advisories. The live custom-image acceptance warrants a vendor report that separates the observed installation from the unobserved controller decision path. No report has been sent.

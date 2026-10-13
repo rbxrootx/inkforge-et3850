@@ -11,6 +11,7 @@ import sys
 from et3850 import (ASSETS, ROOT, SCRIPTS, SOURCE_SHA256, VID_PID,
                     inspect_firmware, printer_queues, sha256_file,
                     tcp_services, usb_bulk_interface, usb_devices)
+from workdir import WORK_DIR
 
 
 def build_candidate(original: Path, squashfs: Path, output: Path,
@@ -65,7 +66,7 @@ def main():
     shell = sub.add_parser("shell", help="log in to the installed password-gated root shell")
     shell.add_argument("host")
     shell.add_argument("--password-file", type=Path,
-                       default=ROOT.parent.parent / "work" / "telnet_password.txt")
+                       default=WORK_DIR / "telnet_password.txt")
     shell.add_argument("--command", dest="shell_command",
                        help="run one shell command instead of an interactive session")
     args = parser.parse_args()

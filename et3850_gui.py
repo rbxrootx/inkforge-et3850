@@ -36,16 +36,16 @@ class App:
         self.root.geometry("1130x760")
         self.root.minsize(960, 650)
         self.events: queue.Queue = queue.Queue()
-        self.source = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "FWCJ61TL.rcx"))
-        self.squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet4_squashfs_1.img"))
-        self.first_squashfs = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet2_squashfs_0.img"))
+        self.source = tk.StringVar(value=str(core.WORK_DIR / "FWCJ61TL.rcx"))
+        self.squashfs = tk.StringVar(value=str(core.WORK_DIR / "telnet4_squashfs_1.img"))
+        self.first_squashfs = tk.StringVar(value=str(core.WORK_DIR / "telnet2_squashfs_0.img"))
         fresh_name = "inkforge_et3850_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".rcx"
-        self.destination = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / fresh_name))
-        self.flash_image = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet4_wifi_auth_candidate.rcx"))
-        saved_host = core.ROOT.parent.parent / "work" / "printer_host.txt"
+        self.destination = tk.StringVar(value=str(core.WORK_DIR / fresh_name))
+        self.flash_image = tk.StringVar(value=self.destination.get())
+        saved_host = core.WORK_DIR / "printer_host.txt"
         self.host = tk.StringVar(value=saved_host.read_text(encoding="ascii").strip()
                                  if saved_host.is_file() else "")
-        self.password_file = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_password.txt"))
+        self.password_file = tk.StringVar(value=str(core.WORK_DIR / "telnet_password.txt"))
         self.root_command = tk.StringVar(value="id")
         self.append_byte = tk.BooleanVar(value=True)
         self.patch_ipl = tk.BooleanVar(value=True)
@@ -464,7 +464,7 @@ class App:
         if not re.fullmatch(r"[A-Za-z0-9.:-]+", host):
             messagebox.showerror("Interactive terminal", "Use a plain IP address or hostname.")
             return
-        private_work = (core.ROOT.parent.parent / "work").resolve()
+        private_work = core.WORK_DIR.resolve()
         if password.resolve().parent != private_work or not re.fullmatch(r"[A-Za-z0-9._-]+", password.name):
             messagebox.showerror("Interactive terminal", "Choose a password file directly inside this project's private work directory.")
             return
