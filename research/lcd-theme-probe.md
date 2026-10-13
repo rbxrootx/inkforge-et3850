@@ -10,6 +10,8 @@ The owner confirmed a normal home screen and USB connection. The USBPRINT D4 sen
 
 **Adverse live result, 2026-10-12:** The owner then reported a black screen, no power-button light, and no response to one Power press. Windows showed no present Epson USB device. The printer has not been recovered or examined yet, so the exact failure point and cause are unknown. **Do not transfer this LCD marker image or any derivative.** No further firmware commands were sent after this report. Offline record checks did not predict this outcome.
 
+After waiting at least 15 minutes, the owner confirmed that the outlet worked and the power cord was seated, then performed one AC disconnect/reconnect and power-on attempt. The printer still showed no light or response. With USB reconnected, Windows listed neither an Epson device nor an unidentified recovery USB device. This rules out a software recovery through the USB interface in its current state; it does not establish whether the underlying fault is firmware, power circuitry, or another board failure. Epson's published recovery updater is specified for a printer whose LCD displays a recovery-mode error, which this one does not.
+
 The white asset was hypothesized to be the active wallpaper. The adverse live result means that hypothesis has not been tested visually. A full photo would require a verified resource mapping and a larger storage strategy; the 104-byte white PNG cannot hold it in place.
 
 Read-only root inspection found `/dev/fb0` through `/dev/fb3` nodes, but no registered framebuffer in `/proc/devices`, `/proc/fb`, or `/sys/class/graphics`. Those nodes do not establish a live Linux framebuffer interface. The controller UI image remains the most concrete firmware skin target.
