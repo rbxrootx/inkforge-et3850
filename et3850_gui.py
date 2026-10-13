@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 import queue
+import re
 import subprocess
 import sys
 import threading
@@ -41,7 +42,9 @@ class App:
         fresh_name = "inkforge_et3850_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".rcx"
         self.destination = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / fresh_name))
         self.flash_image = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet4_wifi_auth_candidate.rcx"))
-        self.host = tk.StringVar(value="192.168.0.12")
+        saved_host = core.ROOT.parent.parent / "work" / "printer_host.txt"
+        self.host = tk.StringVar(value=saved_host.read_text(encoding="ascii").strip()
+                                 if saved_host.is_file() else "")
         self.password_file = tk.StringVar(value=str(core.ROOT.parent.parent / "work" / "telnet_password.txt"))
         self.root_command = tk.StringVar(value="id")
         self.append_byte = tk.BooleanVar(value=True)
@@ -58,9 +61,9 @@ class App:
         header = tk.Frame(self.root, bg=BG, height=88)
         header.pack(fill="x")
         header.pack_propagate(False)
-        tk.Label(header, text="◆  ET-3850 // BREAK THE BLUE", bg=BG, fg=CYAN,
+        tk.Label(header, text="◆  INKFORGE // ET-3850", bg=BG, fg=CYAN,
                  font=(FONT, 23, "bold")).pack(side="left", padx=24, pady=16)
-        tk.Label(header, text="RESEARCH BUILD 01    ·    XB22Q5", bg=BG, fg=PINK,
+        tk.Label(header, text="OWNER MOD KIT    ·    XB22Q5", bg=BG, fg=PINK,
                  font=(FONT, 10, "bold")).pack(side="right", padx=26)
         rule = tk.Frame(self.root, bg=CYAN, height=2)
         rule.pack(fill="x")
@@ -340,10 +343,12 @@ class App:
             process = subprocess.run([sys.executable, str(core.ROOT / "usb_d4.py")],
                                      capture_output=True, text=True, timeout=20)
             if process.returncode:
-                raise RuntimeError(process.stderr.strip() or "D4 query failed")
+                detail = process.stderr.strip().splitlines()[-1] if process.stderr.strip() else "D4 query failed"
+                return {"usb_status": "unavailable", "detail": detail,
+                        "hint": "Check that the printer is connected and no other updater holds its USB interface."}
             return json.loads(process.stdout)
         def done(result):
-            self._log("Live D4 identity/status read completed")
+            self._log("Live D4 identity/status query completed")
             if self.view_name == "OVERVIEW":
                 self.device_text.set(json.dumps(result, indent=2))
         self._run_background("Reading live USB D4 status", task, done)
@@ -456,12 +461,22 @@ class App:
         if not host or not password.is_file():
             messagebox.showinfo("Interactive terminal", "Enter the printer address and choose a private password file.")
             return
+        if not re.fullmatch(r"[A-Za-z0-9.:-]+", host):
+            messagebox.showerror("Interactive terminal", "Use a plain IP address or hostname.")
+            return
+        private_work = (core.ROOT.parent.parent / "work").resolve()
+        if password.resolve().parent != private_work or not re.fullmatch(r"[A-Za-z0-9._-]+", password.name):
+            messagebox.showerror("Interactive terminal", "Choose a password file directly inside this project's private work directory.")
+            return
         python = Path(sys.executable)
         if python.name.lower() == "pythonw.exe":
             python = python.with_name("python.exe")
         flags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
-        subprocess.Popen([str(python), str(core.ROOT / "et3850_mod.py"), "shell", host,
-                          "--password-file", str(password)], cwd=core.ROOT,
+        command = subprocess.list2cmdline([str(python), str(core.ROOT / "et3850_mod.py"),
+                                           "shell", host, "--password-file", str(password)])
+        # cmd /K keeps the window open when the connection fails, so the actual
+        # socket or authentication error remains visible instead of vanishing.
+        subprocess.Popen('cmd.exe /S /K "' + command + '"', cwd=core.ROOT,
                          creationflags=flags)
         self._log(f"Interactive root terminal opened for {host}")
 

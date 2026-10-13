@@ -1,6 +1,6 @@
-# InkForge ET-3850: private owner workbench
+# InkForge ET-3850: owner workbench
 
-This is the local build and control workflow for the one ET-3850 on which a custom image and root shell were verified. The code is hosted in a private GitHub repository. Keep it private while the firmware acceptance issue is prepared for vendor disclosure.
+This is the build and control workflow for the ET-3850 on which a custom image and root shell were verified. The code contains the updater acceptance research, but Epson firmware images and owner credentials remain local.
 
 ## Launch the UI
 
@@ -37,4 +37,4 @@ The first `install` form is preflight only. `--send` transmits. The builder requ
 - The owner's photo wallpaper is still a research lead; the printer's observed home screen has not shown it.
 - We have no tested recovery procedure for a failed custom install. Preserve the stock RCX and the existing working image in private storage.
 
-Neither the RCX, password, manifest, nor extracted Epson files belong in a public repository. The public companion repository remains at [et3850-mod-lab](https://github.com/rbxrootx/et3850-mod-lab) without this installer or the firmware acceptance bypass.
+The RCX, password, manifest, and extracted Epson files remain in local `work/` and are excluded from Git. The simpler [companion repository](https://github.com/rbxrootx/et3850-mod-lab) has controls for an already modified printer.

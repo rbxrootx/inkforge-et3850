@@ -1,8 +1,8 @@
 # Epson ET-3850 firmware research
 
-Private owner research and modding workbench for the ET-3850. This repository is hosted in a private GitHub repository. It contains build and install code but no Epson firmware, device credentials, or flashable image. Keep the installation path private while the updater finding is prepared for disclosure.
+Owner research and modding workbench for the ET-3850. This repository contains build and install code but no Epson firmware, device credentials, or flashable image. The installer currently targets the pinned XB22Q5 release and was verified on one physical printer.
 
-**InkForge private mod:** Run `python et3850_mod.py gui` for a retro UI with a complete offline firmware build, checked USB installer, and root command deck. The pinned stock RCX and generated password stay in local `work/`. See [the current workflow](research/inkforge-private.md). The public [companion repo](https://github.com/rbxrootx/et3850-mod-lab) does not contain the installer or bypass.
+**InkForge mod kit:** Run `python et3850_mod.py gui` for a retro UI with a complete offline firmware build, checked USB installer, and root command deck. The pinned stock RCX and generated password stay in local `work/`. See [the workflow](research/inkforge-workflow.md). The simpler [companion repo](https://github.com/rbxrootx/et3850-mod-lab) controls an already modified printer.
 
 **Live result (2026-10-12):** A custom image ran on the owner's physical ET-3850. A private TCP 2323 login returned `uid=0(root)`; the running network executable matched our patched digest; and the Realtek driver reported `rtw_power_mgnt=0` and `rtw_enusbss=0`. The Python USB sender and companion shell client work. The package was **not** signed with Epson's private key. The exact live acceptance path, long-term Wi-Fi benefit, SSH, and personal-photo home wallpaper remain unresolved. See [live install verification](research/live-custom-install.md). Older sections below preserve the investigation as it developed and may describe earlier candidate states.
 
