@@ -6,9 +6,11 @@ On 2026-10-12, we prepared a small offline probe for the **solid white** PNG at 
 
 The modified CROM was merged into a copy of the image already verified running on the owner's printer. The resulting RCX has SHA-256 `39bff33211e6484a393647940e216123ac325e280582858da529e3cc1e78fcf2`; all three record checks and the local USB preflight pass. The normal ECDSA check still rejects it, as with the installed research image. The image is not distributed here.
 
-The owner confirmed a normal home screen and USB connection. The USBPRINT D4 sender transferred all 40,607,745 binary bytes and received `fl:03:OK`. This is **transport acknowledgement only**. Reboot, device-side execution, and the LCD color are pending post-transfer checks.
+The owner confirmed a normal home screen and USB connection. The USBPRINT D4 sender transferred all 40,607,745 binary bytes and received `fl:03:OK`. This is **transport acknowledgement only**.
 
-If the white asset is the active wallpaper, a successful installation should make the home background vivid violet while leaving the blue tiles intact. If the screen stays white, the home renderer uses another asset or draws a color directly. A full photo would then need a mapped resource and a larger storage strategy; the 104-byte white PNG cannot hold it in place.
+**Adverse live result, 2026-10-12:** The owner then reported a black screen, no power-button light, and no response to one Power press. Windows showed no present Epson USB device. The printer has not been recovered or examined yet, so the exact failure point and cause are unknown. **Do not transfer this LCD marker image or any derivative.** No further firmware commands were sent after this report. Offline record checks did not predict this outcome.
+
+The white asset was hypothesized to be the active wallpaper. The adverse live result means that hypothesis has not been tested visually. A full photo would require a verified resource mapping and a larger storage strategy; the 104-byte white PNG cannot hold it in place.
 
 Read-only root inspection found `/dev/fb0` through `/dev/fb3` nodes, but no registered framebuffer in `/proc/devices`, `/proc/fb`, or `/sys/class/graphics`. Those nodes do not establish a live Linux framebuffer interface. The controller UI image remains the most concrete firmware skin target.
 

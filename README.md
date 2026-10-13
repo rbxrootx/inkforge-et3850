@@ -1,5 +1,7 @@
 # InkForge ET-3850
 
+> **Stop: do not install the experimental LCD image.** On 2026-10-12, a USB transfer of the white-background color-marker candidate received `fl:03:OK`, but the owner's ET-3850 subsequently showed a black screen, no power light, and no USB enumeration. Recovery has not been verified. The cause is under investigation; a transport acknowledgement does not establish a safe flash or boot. See the [LCD probe record](research/lcd-theme-probe.md).
+
 Build and inspect a custom ET-3850 firmware image, transfer it over USB, and open a root console on a modified printer. InkForge is a Python/Tkinter workbench for owners experimenting with firmware `05.15.XB22Q5`. It does not include Epson firmware, a flashable image, or device credentials.
 
 **Tested on one ET-3850:** A custom XB22Q5-derived image was transferred over USBPRINT D4. After reboot, the device ran our patched network executable, exposed a password-gated shell on TCP 2323, and reported `rtw_power_mgnt=0` and `rtw_enusbss=0`. The package did not verify against the extracted stock ECDSA key. The exact device-side acceptance path was not captured. [Evidence and limits](research/live-custom-install.md).
