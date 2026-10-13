@@ -33,8 +33,10 @@ def png_end(blob: bytes, start: int = 0) -> int:
 def exact_png(data: bytes, expected_size: int) -> bytes:
     data = data[:png_end(data)]
     space = expected_size - len(data)
+    if space == 0:
+        return data
     if space < 20:
-        raise ValueError(f"photo PNG needs {len(data)} bytes, slot has {expected_size}")
+        raise ValueError(f"replacement PNG needs {len(data)} bytes, slot has {expected_size}")
     payload = b"Comment\0" + b" " * (space - 12 - len(b"Comment\0"))
     kind = b"tEXt"
     chunk = struct.pack(">I", len(payload)) + kind + payload
@@ -89,6 +91,8 @@ def main():
     parser.add_argument("--source-crom", type=Path, required=True)
     parser.add_argument("--decoded-ui", type=Path, required=True)
     parser.add_argument("--wallpaper-png", type=Path, required=True)
+    parser.add_argument("--png-offset", type=lambda value: int(value, 0), default=PNG_OFFSET,
+                        help="decoded UI offset of the target PNG (default: blue wave)")
     parser.add_argument("--uncrom", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -97,10 +101,10 @@ def main():
     spec.loader.exec_module(decoder)
     raw = args.source_crom.read_bytes()
     original = args.decoded_ui.read_bytes()
-    stock_end = png_end(original, PNG_OFFSET)
-    stock_size = stock_end - PNG_OFFSET
+    stock_end = png_end(original, args.png_offset)
+    stock_size = stock_end - args.png_offset
     replacement = exact_png(args.wallpaper_png.read_bytes(), stock_size)
-    desired = original[:PNG_OFFSET] + replacement + original[stock_end:]
+    desired = original[:args.png_offset] + replacement + original[stock_end:]
     assert len(desired) == len(original)
 
     reader = decoder.CROMReader(io.BytesIO(raw))
@@ -177,7 +181,7 @@ def main():
     assert len(candidate) == len(raw)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(candidate)
-    print("stock_png_bytes", stock_size, "photo_png_bytes", len(replacement))
+    print("stock_png_bytes", stock_size, "replacement_png_bytes", len(replacement))
     print("converted_copy_bytes", copied_to_literal, "old_items", len(reader.copy_items),
           "new_items", len(new_items))
     print("compressed_growth", growth, "output_sha256", hashlib.sha256(candidate).hexdigest())
@@ -187,7 +191,7 @@ def main():
     assert restored == desired
     assert verify.stream.tell() == len(first)
     assert len(restored) == len(original)
-    print("decoded_full_image_verified", True, "changed_interval", (PNG_OFFSET, stock_end))
+    print("decoded_full_image_verified", True, "changed_interval", (args.png_offset, stock_end))
 
 
 if __name__ == "__main__":

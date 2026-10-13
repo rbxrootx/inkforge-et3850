@@ -16,12 +16,14 @@ parser.add_argument("base_rcx", type=Path)
 parser.add_argument("source_crom", type=Path)
 parser.add_argument("replacement_crom", type=Path)
 parser.add_argument("output_rcx", type=Path)
+parser.add_argument("--expected-base-sha256", default=BASE_HASH,
+                    help="SHA-256 of the exact base RCX; the default is the original offline research candidate")
 args = parser.parse_args()
 if args.base_rcx.resolve() == args.output_rcx.resolve():
     parser.error("output must differ from base image")
 base = bytearray(args.base_rcx.read_bytes())
-if hashlib.sha256(base).hexdigest() != BASE_HASH:
-    raise ValueError("unexpected Wi-Fi/Telnet candidate")
+if hashlib.sha256(base).hexdigest() != args.expected_base_sha256.lower():
+    raise ValueError("base RCX does not match the expected SHA-256")
 source = args.source_crom.read_bytes()
 replacement = args.replacement_crom.read_bytes()
 if len(source) != len(replacement) or base[CROM_OFFSET:CROM_OFFSET + len(source)] != source:

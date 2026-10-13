@@ -6,7 +6,7 @@ InkForge is independent ET-3850 research software. Its public scripts describe f
 
 ## Report a new issue
 
-- **InkForge code:** use GitHub's private vulnerability report for this repository if available. Do not put passwords, firmware images, or live exploit details in a public issue.
+- **InkForge code:** open the repository's [Advisories page](https://github.com/rbxrootx/inkforge-et3850/security/advisories) and choose **Report a vulnerability**. Private reporting is enabled. Do not put passwords, firmware images, or live exploit details in a public issue.
 - **Epson product:** use [Epson's vulnerability report form](https://www.epson.eu/en_EU/faq/KA-01896). Include the model, firmware version, entry point, required access, minimal reproduction, observed and expected behavior, and a sanitized trace. Epson says it acknowledges reports within five working days and asks researchers to coordinate publication. It does not offer compensation.
 - **Coordination help:** [CERT/CC](https://www.kb.cert.org/vuls/report/) asks researchers to contact the vendor first and may assist when coordination breaks down.
 

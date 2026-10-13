@@ -40,7 +40,7 @@ The installer needs **physical USB access** to the printer in the tested path. T
 - [Live install evidence](research/live-custom-install.md) — what the physical device proved.
 - [Firmware layout and USB transport](research/firmware-layout.md) · [USB update route](research/usb-update-route.md).
 - [Firmware acceptance analysis](research/controller-signature-length-bypass.md) — isolated ARM controls and unresolved checks.
-- [LCD asset research](research/full-screen-ui-assets.md) — why the current photo candidate is not yet a home-screen skin.
+- [LCD asset research](research/full-screen-ui-assets.md) · [white-background probe](research/lcd-theme-probe.md) — why the photo candidate is not yet a home-screen skin.
 - [Finding tracker](research/vulnerabilities.md) — separates reproduced behavior from static leads and retracted findings.
 - [Disclosure guide](SECURITY.md) — how to report a new InkForge or Epson issue.
 
